@@ -37,7 +37,7 @@ POSITIVE_KEYWORDS = {
 }
 
 NEGATIVE_KEYWORDS = {
-    "senior": -20,
+    "senior": -50,
     "staff": -30,
     "principal": -35,
     "director": -40,
@@ -49,7 +49,18 @@ ROLE_BONUSES = {
     "ml engineer": 80,
     "machine learning engineer": 80,
     "founding ai engineer": 100,
+
     "integrations engineer": 70,
+    "implementation engineer": 70,
+    "solutions engineer": 65,
+    "customer engineer": 65,
+    "technical support engineer": 35,
+    "support engineer": 30,
+
+    "technical operations": 60,
+    "systems operations": 60,
+    "revenue operations": 55,
+
     "automation": 50,
     "workflow": 50,
     "genai": 40,
@@ -65,4 +76,8 @@ ROLE_PENALTIES = {
     "human resources": -50,
     "hr": -50,
     "communications": -30,
+    "marketing": -40,
+    "sales": -20,
+    "account executive": -60,
+    "business development": -40,
 }

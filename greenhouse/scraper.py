@@ -1,6 +1,36 @@
 import requests
 
+from bs4 import BeautifulSoup
+
 from greenhouse.companies import COMPANIES
+
+from html import unescape
+
+def clean_description(html):
+
+    if not html:
+
+        return ""
+
+    html = unescape(html)
+
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
+
+    text = soup.get_text(
+        "\n",
+        strip=True
+    )
+
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    return "\n".join(lines)
 
 
 def get_greenhouse_jobs():
@@ -12,11 +42,18 @@ def get_greenhouse_jobs():
         url = (
             f"https://boards-api.greenhouse.io/"
             f"v1/boards/{company}/jobs"
+            f"?content=true"
         )
 
         try:
 
-            response = requests.get(url)
+            response = requests.get(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0"
+                },
+                timeout=15
+            )
 
             data = response.json()
 
@@ -36,6 +73,15 @@ def get_greenhouse_jobs():
             )
 
             for job in jobs:
+
+                description = (
+                    clean_description(
+                        job.get(
+                            "content",
+                            ""
+                        )
+                    )
+                )
 
                 all_jobs.append({
 
@@ -63,7 +109,7 @@ def get_greenhouse_jobs():
 
                     "source": "greenhouse",
 
-                    "description": ""
+                    "description": description
 
                 })
 
