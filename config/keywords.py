@@ -22,3 +22,62 @@ SECONDARY_KEYWORDS = [
     "solutions",
     "support",
 ]
+POSITIVE_KEYWORDS = {
+    "automation": 15,
+    "ai": 10,
+    "openai": 15,
+    "n8n": 25,
+    "zapier": 20,
+    "make": 20,
+    "workflow": 15,
+    "crm": 15,
+    "api": 10,
+    "integration": 10,
+    "python": 10,
+}
+
+NEGATIVE_KEYWORDS = {
+    "senior": -50,
+    "staff": -30,
+    "principal": -35,
+    "director": -40,
+    "lead": -15,
+}
+
+ROLE_BONUSES = {
+    "ai engineer": 80,
+    "ml engineer": 80,
+    "machine learning engineer": 80,
+    "founding ai engineer": 100,
+
+    "integrations engineer": 70,
+    "implementation engineer": 70,
+    "solutions engineer": 65,
+    "customer engineer": 65,
+    "technical support engineer": 35,
+    "support engineer": 30,
+
+    "technical operations": 60,
+    "systems operations": 60,
+    "revenue operations": 55,
+
+    "automation": 50,
+    "workflow": 50,
+    "genai": 40,
+    "enterprise ai": 40,
+    "openai": 40,
+}
+
+ROLE_PENALTIES = {
+    "executive assistant": -60,
+    "administrative assistant": -60,
+    "bookkeeper": -60,
+    "cleaner": -100,
+    "human resources": -50,
+    "hr": -50,
+    "communications": -30,
+    "marketing": -40,
+    "sales": -20,
+    "account executive": -60,
+    "business development": -40,
+}

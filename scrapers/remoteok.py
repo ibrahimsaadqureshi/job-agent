@@ -1,7 +1,33 @@
 import requests
-
+from bs4 import BeautifulSoup
+from html import unescape
 from utils import is_relevant
 
+def clean_description(html):
+
+    if not html:
+
+        return ""
+
+    html = unescape(html)
+
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
+
+    text = soup.get_text(
+        "\n",
+        strip=True
+    )
+
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    return "\n".join(lines)
 
 def get_remoteok_jobs():
 
@@ -35,9 +61,11 @@ def get_remoteok_jobs():
         if not title:
             continue
 
-        description = job.get(
-            "description",
-            ""
+        description = clean_description(
+            job.get(
+                "description",
+                ""
+            )
         )
 
         combined_text = (
