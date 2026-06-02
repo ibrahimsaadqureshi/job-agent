@@ -1,0 +1,5 @@
+COMPANIES = [
+    "scaleai",
+    "sourcegraph",
+    "cockroachlabs",
+]
