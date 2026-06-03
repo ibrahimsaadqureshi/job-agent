@@ -43,7 +43,33 @@ JOB DESCRIPTION:
 {job_text}
 """
 
-    result = generate_assessment(full_prompt)
+    last_error = None
+
+    for attempt in range(2):
+        try:
+            result = generate_assessment(full_prompt)
+
+            print(
+                f"Assessment generated successfully "
+                f"on attempt {attempt + 1}"
+            )
+
+            break
+
+        except Exception as e:
+            last_error = e
+
+            print(
+                f"Attempt {attempt + 1} failed: {e}"
+            )
+
+    else:
+        print(
+            f"Skipping {job_file.name}. "
+            f"Assessment failed after 2 attempts."
+        )
+
+        continue
 
     assessment_path = (
         assessments_dir /
@@ -59,6 +85,9 @@ JOB DESCRIPTION:
         {
             "job_file": job_file.name,
             "match_score": result["match_score"],
+            "strengths": result["strengths"],
+            "missing_skills": result["missing_skills"],
+            "summary": result["summary"],
         }
     )
 
@@ -87,3 +116,24 @@ for index, result in enumerate(results, start=1):
         f"{result['job_file']} - "
         f"{result['match_score']}"
     )
+
+    print()
+
+    print("Top Strengths:")
+    for strength in result["strengths"][:3]:
+        print(f"- {strength}")
+
+    print()
+
+    print("Missing Skills:")
+    for skill in result["missing_skills"][:3]:
+        print(f"- {skill}")
+
+    print()
+
+    print("Summary:")
+    print(result["summary"])
+
+    print()
+    print("-" * 60)
+    print()
