@@ -120,16 +120,19 @@ database/jobs.db
 * Duplicate investigation
 * Report deduplication
 
-### Phase 3 — Planned
+### Phase 3 Resume Intelligence
 
-Resume Intelligence using Ollama.
+Status: Prototype Complete
 
-Planned outputs:
-
-* Match score
-* Missing skills
-* Recruiter summary
-* Resume recommendations
+Features:
+- Local Ollama integration
+- Qwen2.5:7b support
+- Resume vs Job Description assessment
+- Structured JSON output
+- Match scoring
+- Strength extraction
+- Skill-gap analysis
+- Recruiter talking points
 
 ### Future Roadmap
 

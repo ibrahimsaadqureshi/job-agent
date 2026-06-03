@@ -1,0 +1,121 @@
+Job Title: AI Automation & Solutions Engineer
+Company: Meridian AI
+Location: Remote (US / EU / Pakistan welcome)
+Source: Ashby
+URL: https://jobs.ashbyhq.com/meridianai/ai-automation-solutions-engineer
+
+---
+
+ABOUT MERIDIAN AI
+
+Meridian AI is a Series A startup building intelligent workflow automation for mid-market revenue teams. We help companies replace manual CRM hygiene, lead routing, and onboarding workflows with AI-native pipelines. Our customers include SaaS companies, agencies, and operations-heavy teams across North America and Europe.
+
+We are a team of 34 people, fully remote, backed by $12M in Series A funding.
+
+---
+
+THE ROLE
+
+We are looking for an AI Automation & Solutions Engineer to sit at the intersection of pre-sales, implementation, and customer success. You will work directly with new customers to configure, deploy, and optimize Meridian AI for their existing tech stack.
+
+This is a high-ownership role. You will be the technical voice in sales calls, the person who builds the first automation for a new customer, and the internal advocate who translates customer feedback into product improvements.
+
+---
+
+WHAT YOU WILL DO
+
+- Lead technical discovery calls with prospects to understand their CRM workflows, data structure, and automation goals
+- Design and implement AI-powered automation workflows using Meridian AI, n8n, and customer-owned tools
+- Integrate Meridian AI with HubSpot, Salesforce, GoHighLevel, Pipedrive, and other CRM platforms via REST APIs and webhooks
+- Build onboarding playbooks and configuration templates for repeatable customer segments
+- Identify automation gaps and work with the product team to prioritize integrations
+- Monitor deployed workflows, troubleshoot failures, and optimize performance
+- Document implementation patterns for internal reuse and customer-facing knowledge base
+- Occasionally support pre-sales demos for technical prospects
+
+---
+
+WHAT WE ARE LOOKING FOR
+
+Required:
+- 2+ years of experience in a solutions engineering, implementation, technical operations, or automation role
+- Hands-on experience with at least one CRM platform (HubSpot, Salesforce, GoHighLevel, or similar)
+- Experience building workflows in n8n, Zapier, Make, or a comparable automation platform
+- Comfort working with REST APIs, webhooks, and JSON data structures
+- Strong written communication — you will write technical documentation and async customer updates regularly
+- Ability to manage multiple implementations simultaneously without losing detail
+
+Preferred:
+- Experience with AI tooling — prompt engineering, LLM API integration, or AI-powered workflow design
+- Familiarity with Python for scripting, data transformation, or API interaction
+- Exposure to RevOps concepts: lead scoring, pipeline hygiene, lifecycle stage management
+- Experience working in an early-stage startup environment
+
+---
+
+WHAT WE OFFER
+
+- $70,000 – $95,000 USD base salary (location-adjusted)
+- Equity: 0.05% – 0.15% options
+- Fully remote, async-first culture
+- $1,500 annual learning and tooling budget
+- Health stipend for international team members
+- Direct access to founders and product team
+
+---
+
+TECH STACK YOU WILL WORK WITH
+
+- Meridian AI platform
+- n8n (self-hosted and cloud)
+- HubSpot, Salesforce, GoHighLevel
+- OpenAI API, Anthropic API
+- REST APIs, webhooks, JSON
+- Python (scripting level)
+- Notion (documentation)
+- Linear (issue tracking)
+
+---
+
+HIRING PROCESS
+
+1. Async application — resume + short written response (no cover letter required)
+2. 30-minute intro call with hiring manager
+3. Technical assessment — build a small automation workflow using provided tools
+4. Final call with a founder
+5. Offer
+
+We aim to complete the full process in under 3 weeks.
+
+---
+
+EQUAL OPPORTUNITY
+
+Meridian AI hires across time zones and geographies. We evaluate candidates on demonstrated ability, not credentials. International applicants are encouraged to apply.
+
+---
+
+NOTE FOR JOB AGENT
+
+match_signals:
+  - n8n
+  - GoHighLevel
+  - CRM automation
+  - REST APIs
+  - webhooks
+  - Python
+  - RevOps
+  - AI workflow
+  - solutions engineering
+  - implementation
+  - HubSpot
+  - Series A
+  - remote
+  - async
+
+seniority: mid
+remote_type: remote
+salary_min: 70000
+salary_max: 95000
+company_stage: series_a
+source: ashby

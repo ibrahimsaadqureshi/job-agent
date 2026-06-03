@@ -1,0 +1,108 @@
+Ibrahim Saad Qureshi
+Lahore, Pakistan | isqm123@gmail.com | +92-300-4893757 | linkedin.com/in/ibrahimsaadq
+I build automation systems that close the gap between sales, operations, and communication using n8n,
+GoHighLevel, and AI-assisted workflows to replace manual processes with reliable, repeatable systems. My
+background spans operational coordination, CRM management, lead workflow automation, and Linux-based
+technical troubleshooting. I adapt quickly to new tools and technical environments and focus on building
+systems that are reliable in real-world environments. Open to remote roles in automation engineering,
+technical operations, AI workflows, or support engineering.
+Technical Skills​
+●​
+Automation & Operations: n8n, GoHighLevel, CRM Automation, Workflow Design, Lead Pipeline
+Logic, Process Optimization
+●​
+Development: Python, Java, HTML, CSS, JavaScript, MySQL, TensorFlow, REST APIs
+●​
+AI & Tooling: Claude API, Gemini CLI, AI-Assisted Workflow Design, API Integrations
+●​
+Technical Environment: Linux (Pop!_OS), Git & GitHub, VS Code, Trello
+Professional Experience​
+Digital Platforms & Operations Coordinator​
+Apr 2022 – Present
+Teen Musafir ​
+●​
+Designed and maintained Trello-based workflow systems that tracked tasks, deadlines, and
+responsibilities across operations teams of 8–20 people, reducing dropped tasks and miscommunication
+during recurring 100–200 participant programmes.
+●​
+Standardised inter-team communication processes, reducing response-to-resolution time by
+consolidating all operational feedback into a single tracked system.
+●​
+Managed all digital platform operations including scheduling, participant data, and post-event
+reporting, enabling the core team to run events with less manual overhead each cycle.
+●​
+Led coordination across logistics, communication, and execution for multi-day outdoor
+programmes, directly overseeing team leads and resolving on-ground issues in real time.
+Teaching Assistant — Programming Fundamentals​
+Feb 2024 – Jun 2025
+Forman Christian College University, Lahore (FCCU)​
+●​
+Supported 40+ students per semester through weekly Python lab sessions, covering core
+concepts such as OOP, debugging, and algorithm design.
+●​
+Configured and maintained lab environments for coursework and assessments, resolving
+environment and dependency issues before they impacted student work.
+●​
+Assisted with quiz and assignment evaluation, providing structured feedback that helped
+students improve between submissions.
+Frontend Development Trainee ​
+May 2023 – Aug 2023
+ArhamSoft (Pvt) Ltd​
+●​
+Built and iterated on HTML/CSS components as part of a collaborative team, strengthening
+practical frontend fundamentals through real project work rather than coursework alone.
+Projects​
+AI & CRM Lead Automation System
+●​
+Built an n8n workflow that captures incoming leads from a web form, auto-routes them into
+GoHighLevel pipelines by source tag, and triggers a multi-step SMS + email follow-up sequence without
+manual intervention.
+●​
+Implemented conditional branch logic to handle lead status changes (new → contacted →
+qualified) and auto-log activity to a Google Sheet for pipeline visibility.
+●​
+Integrated EasyRoutes with GoHighLevel via REST API: pulled live route and delivery data into
+n8n, sorted and transformed it, then pushed it to GHL — automatically creating or updating contacts and
+reflecting real-time delivery status in a dedicated GHL pipeline.
+●​
+Mapped each order's Shopify ID to its corresponding GHL contact and pipeline entry, ensuring
+every delivery record was traceable back to its original Shopify order.
+●​
+End-to-end system replaced manual data entry across three platforms (Shopify, EasyRoutes,
+GHL), giving the operations team a single live view of all active deliveries.
+Web Applications
+
+●​
+
+Voting Management System: Web app that calculates and displays election results in real time
+based on user-submitted votes.
+●​
+School Management System: Platform for managing student records, attendance tracking, and
+result reporting.
+Playing Card Object Detection Model​
+●​
+Trained a TensorFlow object detection model to identify and classify individual playing cards from
+a live camera feed, achieving reliable recognition across varying lighting and card orientations.
+●​
+Handled dataset collection, annotation, model training, and real-world testing end-to-end.
+Certifications
+●​
+Prompt Design in Vertex AI
+●​
+Microsoft Azure Fundamentals (AZ-900)
+Education​
+Forman Christian College University, Lahore (FCCU)​
+BS Computer Science
+​
+2021 - 2025
+Forman Christian College, Lahore (FCC)​
+FSc Pre-Engineering​
+2017 - 2019
+Extracurricular & Volunteer Experience​
+St. Anthony High School
+Scratch Programming Instructor​
+2022
+●​
+Taught children game development fundamentals using Scratch, introducing programming logic and
+computational thinking to students with no prior coding experience.
+
