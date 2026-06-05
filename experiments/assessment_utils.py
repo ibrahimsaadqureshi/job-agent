@@ -6,6 +6,7 @@ def validate_assessment(result):
     required_keys = {
         "match_score",
         "strengths",
+        "transferable_skills",
         "missing_skills",
         "summary",
         "talking_points",
@@ -23,6 +24,11 @@ def validate_assessment(result):
 
     if not isinstance(result["strengths"], list):
         raise ValueError("strengths must be a list")
+
+    if not isinstance(result["transferable_skills"], list):
+        raise ValueError(
+            "transferable_skills must be a list"
+        )
 
     if not isinstance(result["missing_skills"], list):
         raise ValueError("missing_skills must be a list")
@@ -56,8 +62,16 @@ def generate_assessment(full_prompt):
 
     raw_response = data["response"]
 
-    clean_response = raw_response.replace("```json", "")
-    clean_response = clean_response.replace("```", "")
+    clean_response = raw_response.replace(
+        "```json",
+        ""
+    )
+
+    clean_response = clean_response.replace(
+        "```",
+        ""
+    )
+
     clean_response = clean_response.strip()
 
     result = json.loads(clean_response)
