@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 resume_path = BASE_DIR / "samples" / "resume.txt"
 jobs_dir = BASE_DIR / "samples" / "jobs"
-prompt_path = BASE_DIR / "prompts" / "resume_match_prompt.txt"
+prompt_path = BASE_DIR / "prompts" / "resume_match_prompt_v2.txt"
 
 eval_results_dir = (
     BASE_DIR / "eval" / "eval_results"

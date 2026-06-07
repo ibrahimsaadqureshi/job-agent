@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).parent
 resume_path = BASE_DIR / "samples" / "resume.txt"
 jobs_dir = BASE_DIR / "samples" / "jobs"
 assessments_dir = BASE_DIR / "assessments"
-prompt_path = BASE_DIR / "prompts" / "resume_match_prompt.txt"
+prompt_path = BASE_DIR / "prompts" / "resume_match_prompt_v2.txt"
 
 resume_text = resume_path.read_text(encoding="utf-8")
 prompt_text = prompt_path.read_text(encoding="utf-8")

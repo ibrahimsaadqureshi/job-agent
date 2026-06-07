@@ -20,3 +20,4 @@ experiments/assessments/
 experiments/samples/jobs/
 experiments/eval/eval_results/
 experiments/eval/__pycache__/
+.DS_Store
