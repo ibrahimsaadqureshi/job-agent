@@ -1,0 +1,39 @@
+You screen remote job postings for one candidate. For each job, give a score from 0 to 100 for how good a bet it is for this candidate to apply to now, and a one-line reason.
+
+CANDIDATE PROFILE (contact details removed):
+<<<
+{profile}
+>>>
+
+Work out from the profile, and use consistently for every job:
+- Real professional experience: add up the dates of professional roles. Don't round up, and don't count study or side projects as years.
+- Main stack: the languages and frameworks the profile uses most.
+- Other skills the profile names, such as automation tools.
+
+Score on three questions:
+1. Can they get hired? Compare the level and years asked with the candidate's real experience. Junior, entry-level, associate, mid-level or no stated level is fine. "Senior" with 5+ years asked is a long shot.
+2. Can they ramp up fast? Same stack is best. A nearby stack (another web language, backend or mobile work) is a learnable gap. A far stack (embedded, C/C++, low-level systems, ML research, heavy domain expertise) is a big gap. Mentorship, training or "we'll teach you" signals help.
+3. Will they grow? The role should build real engineering skills. Rote work with no engineering in it (data labelling, AI-trainer gigs, manual test clicking, support with no technical side) grows little.
+
+Score bands:
+- 85-100: could be hired now. Level fits, stack is mostly theirs, open to their region.
+- 70-84: a good bet with a learnable gap, such as a junior or mid role in a nearby stack, or automation work matching tools they've used.
+- 50-69: a stretch. One real gap in level or stack, but possible.
+- 25-49: unlikely. A senior role asking 5+ years, or a far stack.
+- 0-24: not realistic.
+
+Hard caps (apply the lowest one that fits):
+- required_years is 5 or 6: score at most 40. 7 or more: at most 25.
+- Text hints at a region lock even though the location looks open (must live in or be a citizen of one country, a timezone far from UTC+5 with long required overlap, "US-based", a named city): at most 30.
+- "Talent pool" agencies and marketplaces that mass-post near-identical roles to collect applicants (for example Hivex, micro1, Xperteez, or any "join our talent network/pool", "we'll match you with clients" posting): at most 30.
+- Staff, principal, lead, architect or manager level: at most 25.
+
+Reason: at most 120 characters, plain words, speaking to the candidate as "you". Name the one gap or strength that decided the score, e.g. "Go is new to you, but the role is junior and mentored" or "Asks 7+ years of senior backend work; you have far less".
+
+Judge only from the job text. Don't assume anything good about a job that the text doesn't say.
+
+JOBS (JSON, one object per job; description is cut short):
+{jobs}
+
+Return only a JSON array with exactly one object per job above, in any order:
+[{"id": "<id from the job>", "score": <integer 0-100>, "reason": "<one line>"}]

@@ -1,0 +1,29 @@
+Write a short application note from the candidate to the hiring team for the job below, in the first person ("I").
+
+CANDIDATE PROFILE (contact details removed):
+<<<
+{profile}
+>>>
+
+JOB:
+Title: {title}
+Company: {company}
+Location: {location}
+Description (cut short):
+<<<
+{description}
+>>>
+
+Why it may fit (from screening): {reason}
+
+Rules:
+- 80 to 120 words, plain text, one or two short paragraphs. No greeting, no sign-off, no name, no subject line, no markdown, no bullet points.
+- Only claim skills, tools, platforms, methods, years and results that the profile states explicitly. Never claim something the profile doesn't name, even if the job asks for it.
+- If the job needs something the profile doesn't name, you may say once, plainly, that it is new to you and how related experience will help you learn it. Related experience is not direct experience: don't describe it as if it were.
+- Name one concrete project or achievement from the profile that matches the job, with its real details. Don't invent numbers, employers, titles, dates, degrees or users.
+- State experience honestly, as the profile gives it. Don't inflate years or seniority.
+- When in doubt, be conservative and leave it out.
+- Be direct and specific. No clichés: never write "I am excited to apply", "I am writing to", "passionate", "perfect fit", "hit the ground running", "fast-paced", "dynamic", "synergy" or "I believe I would be a great".
+- No contact details, links or placeholders like [Name].
+
+Return only the note.
