@@ -390,7 +390,7 @@ code itself is the rest of the hand-off.
 | Session | Milestones | What the owner does before or during it | Ends when |
 |---|---|---|---|
 | 1 | Plan + M0 | Approve the plan | Contracts, dry-run CLI and tests are committed ✅ |
-| 2 | M1 sources + M2 filters/dedupe | Nothing. Optionally create the Gemini key (step A below) | A dry-run prints real, filtered, deduped jobs from all five sources |
+| 2 | M1 sources + M2 filters/dedupe | Nothing. Optionally create the Gemini key (step A below) | A dry-run prints real, filtered, deduped jobs from all five sources ✅ |
 | 3 | M3 LLM scoring + drafts | **Step A done before starting** | `--dry-run --limit 5` shows real scores, reasons and drafts |
 | 4 | M4 Sheet + M5 Slack | **Steps B and C done before starting** | Rows land in the real Sheet and a digest arrives in Slack |
 | 5 | M6 GitHub Actions + M7 README, publish | Step D during the session, then approve the push and publishing | The daily run works with the Mac off, and the repo is public |
@@ -444,3 +444,36 @@ Never paste a key into a chat. Open the file with
   - Raw feeds saved on 2026-11-25 are in `/tmp/jobsrc/*.out`, useful for test fixtures,
     but `/tmp` may be cleared, so re-fetch them if they're gone.
   - **Next: session 2, M1 + M2.**
+- **Session 2 (2026-11-25): M1 sources + M2 filters/dedupe done.**
+  - Branch `claude/v2-session2-c0ec9f` (cut from `v2` at `8da75aa`). 238 tests pass.
+  - **Sources** (`jobagent/sources/`): himalayas, wwr, remoteok, remotive, hn, registered in
+    that priority order. Each has a pure `parse(payload)` tested against trimmed fixtures in
+    `tests/fixtures/`, plus a thin `fetch`. Shared helpers are in `sources/_util.py`.
+  - **Filters** (`filters.py`): `evaluate`, `location_rule`, `work_authorization_lock`,
+    `required_years` (not used yet: session 3 passes it to the LLM as a hint). Drop labels are
+    `DROP_LABELS` = non-tech, seniority, location, work-authorization.
+  - **Dedupe** (`dedupe.py`): id or company+title fingerprint; first source wins, others go to
+    `also_on`.
+  - **Live dry-run, 2026-11-25:** fetched himalayas=391, wwr=381, remoteok=100, remotive=15,
+    hn=238 (1,125 total, ~18 s). 368 passed the filters, 15 duplicates, 353 new. Kept per
+    source: himalayas 246, wwr 87, hn 13, remotive 4, remoteok 3. Categories: tech-entry 216,
+    stack 112, automation 25. Location rule: worldwide 217, pakistan 120, asia 12, emea 3,
+    unspecified 1. Dropped: non-tech 346, location 292, seniority 110, work-authorization 9.
+    A second `--local` run reported all 353 as already seen.
+  - **Contract change:** `RunOptions.track_unscored` (default False) in `pipeline.py`. Unscored
+    jobs are never tracked, so `--local --no-llm` could never show cross-run dedupe working.
+    The CLI sets the flag only for `--local --no-llm`. Production behavior is unchanged.
+  - **Surprises:**
+    - WWR's `<country>` field is a real restriction: "Anywhere in the World" plus a country
+      means "only these countries". Its board category is often wrong (statisticians filed under
+      Full-Stack), so it's not used as a tag.
+    - Source tags are too noisy to prove a role is technical: the title decides.
+    - Remote OK and HN add little: 64 of 100 Remote OK jobs are US-only, and most HN posts are
+      US-remote or onsite. A bare HN "REMOTE" is dropped, per section 2.
+    - Same job on two boards is rare (1 today). Most duplicates are reposts within one board.
+    - A few Himalayas "talent pool" companies (Hivex, micro1, Xperteez) post many near-identical
+      jobs. The scorer should rank those low.
+    - `test_cli_dry_run_with_no_sources` was hitting the live sites once sources existed. It now
+      patches the registry empty.
+  - **Next: session 3, M3.** Needs owner Step A (Gemini key) first, and must be cut from this
+    branch.
