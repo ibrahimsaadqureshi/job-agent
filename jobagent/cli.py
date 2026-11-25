@@ -90,11 +90,14 @@ def cmd_run(args: argparse.Namespace) -> int:
             max_drafts=settings.max_drafts_per_run,
             limit=args.limit,
             sheet_url=settings.sheet_url if mode == "production" else "",
+            track_unscored=(mode == "local" and scorer is None),
         ),
     )
     if mode != "production":
         print_preview(result.candidates)
     s = result.stats
+    if s.fetched:
+        print("per source: " + ", ".join(f"{k}={v}" for k, v in s.fetched.items()))
     print(
         f"fetched={s.total_fetched} kept={s.kept} duplicates={s.duplicates_in_run} "
         f"already_seen={s.already_seen} new={s.new} scored={s.scored} drafted={s.drafted} written={s.written}"

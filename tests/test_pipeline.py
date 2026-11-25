@@ -76,6 +76,17 @@ def test_no_llm_writes_nothing_so_jobs_are_retried():
     assert tracker.rows == []
 
 
+def test_track_unscored_records_jobs_so_a_second_run_sees_them():
+    # `--local --no-llm`: no scores, but rows are kept so cross-run dedupe can be checked.
+    jobs = [make_job(1), make_job(2)]
+    tracker = MemoryTracker()
+    first, tracker, _ = go([FakeSource("s", jobs)], tracker=tracker, scorer=None, track_unscored=True)
+    assert first.stats.written == 2 and tracker.rows[0].score is None
+    second, tracker, _ = go([FakeSource("s", jobs)], tracker=tracker, scorer=None, track_unscored=True)
+    assert second.stats.already_seen == 2 and second.stats.new == 0
+    assert len(tracker.rows) == 2
+
+
 def test_limit_scores_newest_first_and_leaves_rest_for_next_run():
     old, new = make_job(1, day=1), make_job(2, day=20)
     scorer = FakeScorer({old.id: 80, new.id: 80})

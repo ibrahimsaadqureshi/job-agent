@@ -33,6 +33,9 @@ class RunOptions:
     max_drafts: int = 12
     limit: int | None = None  # max jobs sent to the scorer this run
     sheet_url: str = ""
+    # Also track jobs that got no score. Only `--local --no-llm` sets this, so cross-run
+    # dedupe can be checked without an LLM; real runs leave unscored jobs for a retry.
+    track_unscored: bool = False
 
 
 @dataclass
@@ -141,7 +144,11 @@ def run(
     stats.unscored = len(candidates) - stats.scored
 
     # 6. Track scored jobs (append-only)
-    rows = [TrackerRow.from_candidate(c, today) for c in candidates if c.score is not None]
+    rows = [
+        TrackerRow.from_candidate(c, today)
+        for c in candidates
+        if c.score is not None or options.track_unscored
+    ]
     if rows:
         tracker.append(rows)
     stats.written = len(rows)
