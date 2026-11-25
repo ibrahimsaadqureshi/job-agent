@@ -14,8 +14,9 @@ import requests
 from jobagent.llm.base import Pacer, ProviderError, post_json
 
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
-# Free-tier per-minute limits are only shown inside AI Studio, so pace conservatively:
-# 6 s between calls is 10 requests a minute.
+# Free-tier limits for gemini-3.1-flash-lite, confirmed by the owner in AI Studio on
+# 2026-11-25: 15 requests/minute, 250K tokens/minute, 500 requests/day. 6 s between calls
+# is 10 a minute, safely under 15.
 DEFAULT_INTERVAL = 6.0
 
 

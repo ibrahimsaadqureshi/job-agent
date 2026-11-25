@@ -4,8 +4,12 @@ Run modes:
   run --dry-run   fetch, filter, dedupe against the local state, score; print rows and
                   digest; write nothing, send nothing.
   run --local     like dry-run, but records rows in ~/.config/job-agent/state/ so a second run dedupes.
-  run             production: Google Sheet + Slack (needs secrets; arrives in M4/M5).
+  run             production: Google Sheet + Slack. A crash posts a short failure notice to
+                  Slack (exception type only) and exits non-zero.
+  setup-sheet     one-time look for the Sheet's Jobs tab (safe to run again).
   profile         print the contact-stripped profile, for the CANDIDATE_PROFILE secret.
+
+Logs and printed output are counts only: in GitHub Actions they are public.
 """
 
 from __future__ import annotations
@@ -30,6 +34,25 @@ class SetupError(RuntimeError):
     """A missing secret or unbuilt component. Message is safe to show and log."""
 
 
+# Settings field -> the env var / GitHub secret the owner sets.
+ENV_NAMES = {
+    "google_service_account_json": "GOOGLE_SERVICE_ACCOUNT_JSON",
+    "sheet_id": "SHEET_ID",
+    "slack_webhook_url": "SLACK_WEBHOOK_URL",
+}
+SHEET_SETTINGS = ("google_service_account_json", "sheet_id")
+PRODUCTION_SETTINGS = (*SHEET_SETTINGS, "slack_webhook_url")
+
+
+def require(settings: Settings, names: tuple[str, ...], what: str) -> None:
+    missing = [ENV_NAMES[n] for n in settings.missing(*names)]
+    if missing:
+        raise SetupError(
+            f"Missing {', '.join(missing)} for {what}. Locally, put them in ~/.config/job-agent/.env; "
+            "in GitHub Actions, add them as repository secrets."
+        )
+
+
 def build_scorer(settings: Settings, no_llm: bool) -> Scorer | None:
     if no_llm:
         return None
@@ -48,13 +71,47 @@ def build_scorer(settings: Settings, no_llm: bool) -> Scorer | None:
 def build_tracker(settings: Settings, mode: str) -> Tracker:
     if mode in ("dry-run", "local"):
         return LocalTracker(STATE_DIR, persist=(mode == "local"))
-    raise SetupError("The Google Sheet tracker is not built yet (M4). Use --dry-run or --local.")
+    require(settings, SHEET_SETTINGS, "the Google Sheet")
+    from jobagent.sheet import SheetError, SheetTracker
+
+    try:
+        return SheetTracker.from_settings(settings)
+    except SheetError as exc:
+        raise SetupError(str(exc)) from None
 
 
 def build_notifier(settings: Settings, mode: str) -> Notifier:
     if mode in ("dry-run", "local"):
         return ConsoleNotifier()
-    raise SetupError("The Slack notifier is not built yet (M5). Use --dry-run or --local.")
+    require(settings, ("slack_webhook_url",), "the Slack digest")
+    from jobagent.slack import SlackNotifier
+
+    labels = {s.name: s.label for s in source_registry.ALL_SOURCES}
+    return SlackNotifier(settings.slack_webhook_url, labels=labels)
+
+
+def notify_failure(notifier: Notifier | None, message: str) -> None:
+    """Best effort: a broken Slack must not hide the original error."""
+    if notifier is None:
+        return
+    try:
+        notifier.send_failure(message)
+    except Exception as exc:
+        print(f"error: the failure notice could not be sent either ({type(exc).__name__})", file=sys.stderr)
+
+
+def safe_detail(exc: BaseException) -> str:
+    """Our own error types carry owner-friendly messages with no secrets; others don't."""
+    from jobagent.slack import SlackError
+
+    safe: tuple[type[BaseException], ...] = (SetupError, SlackError)
+    try:
+        from jobagent.sheet import SheetError
+
+        safe = (*safe, SheetError)
+    except ImportError:
+        pass
+    return f": {exc}" if isinstance(exc, safe) else ""
 
 
 def load_profile(settings: Settings, no_llm: bool) -> str:
@@ -102,22 +159,44 @@ def print_assessments(candidates: list[Candidate], limit: int = 40) -> None:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    settings = load_settings()
-    mode = "dry-run" if args.dry_run else "local" if args.local else "production"
     try:
+        settings = load_settings()
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    mode = "dry-run" if args.dry_run else "local" if args.local else "production"
+    notifier: Notifier | None = None
+    try:
+        if mode == "production":
+            require(settings, PRODUCTION_SETTINGS, "a production run")
+        notifier = build_notifier(settings, mode)
         sources = source_registry.get_sources(args.sources.split(",") if args.sources else None)
         scorer = build_scorer(settings, args.no_llm)
         tracker = build_tracker(settings, mode)
-        notifier = build_notifier(settings, mode)
         profile = load_profile(settings, args.no_llm)
     except (SetupError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
+        if mode == "production":
+            notify_failure(notifier, type(exc).__name__)
         return 2
 
     llm = "off" if scorer is None else ">".join(getattr(getattr(scorer, "chain", None), "names", [settings.llm_provider]))
     limit = args.limit if args.limit is not None else (None if scorer is None else settings.max_scored_per_run)
     print(f"mode={mode} sources={len(sources)} llm={llm}")
-    result = run(
+    try:
+        result = _run(args, settings, mode, sources, scorer, tracker, notifier, profile, limit)
+    except Exception as exc:
+        if mode != "production":
+            raise  # local runs keep the traceback for debugging
+        print(f"error: run failed ({type(exc).__name__}){safe_detail(exc)}", file=sys.stderr)
+        notify_failure(notifier, type(exc).__name__)
+        return 1
+    report(result, mode)
+    return 0
+
+
+def _run(args, settings, mode, sources, scorer, tracker, notifier, profile, limit):
+    return run(
         sources=sources,
         tracker=tracker,
         notifier=notifier,
@@ -132,6 +211,9 @@ def cmd_run(args: argparse.Namespace) -> int:
             track_unscored=(mode == "local" and scorer is None),
         ),
     )
+
+
+def report(result, mode: str) -> None:
     if mode != "production":
         print_preview(result.candidates)
         print_assessments(result.candidates)
@@ -146,6 +228,35 @@ def cmd_run(args: argparse.Namespace) -> int:
         print("dropped: " + ", ".join(f"{k}={v}" for k, v in sorted(s.dropped.items(), key=lambda kv: -kv[1])))
     if s.source_errors:
         print("source errors: " + ", ".join(f"{k} ({v})" for k, v in s.source_errors.items()))
+
+
+def cmd_setup_sheet(args: argparse.Namespace) -> int:
+    settings = load_settings()
+    try:
+        require(settings, SHEET_SETTINGS, "the Google Sheet")
+        from jobagent import sheet
+    except SetupError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except ImportError:
+        print("error: the Sheet libraries aren't installed: pip install -e '.[sheets]'", file=sys.stderr)
+        return 2
+    try:
+        spreadsheet = sheet.open_spreadsheet(settings.google_service_account_json, settings.sheet_id)
+        sheet.setup_sheet(spreadsheet)
+    except sheet.SheetError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:
+        code = getattr(getattr(exc, "response", None), "status_code", None)
+        detail = type(exc).__name__ + (f" {code}" if code else "")
+        print(f"error: Google Sheets request failed ({detail})", file=sys.stderr)
+        return 1
+    print(
+        f"The {sheet.TAB_NAME} tab is ready: bold frozen header, column widths, wrapped reason and "
+        "draft note, hidden id column, score colours (70+ green, 50-69 yellow), a status dropdown "
+        "and a filter row."
+    )
     return 0
 
 
@@ -185,10 +296,14 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--local", action="store_true", help="record rows in local state instead of the Sheet")
     p_run.add_argument("--no-llm", action="store_true", help="skip scoring and drafting (zero LLM cost)")
     p_run.add_argument(
-        "--limit", type=int, default=None, metavar="N", help="score at most N jobs this run (default 100)"
+        "--limit", type=int, default=None, metavar="N",
+        help="score at most N jobs this run (default MAX_SCORED_PER_RUN, 200)"
     )
     p_run.add_argument("--sources", default="", metavar="A,B", help="only these sources (comma-separated)")
     p_run.set_defaults(func=cmd_run)
+
+    p_setup = sub.add_parser("setup-sheet", help="one-time formatting of the Sheet's Jobs tab (safe to repeat)")
+    p_setup.set_defaults(func=cmd_setup_sheet)
 
     p_prof = sub.add_parser("profile", help="print the contact-stripped profile for the CANDIDATE_PROFILE secret")
     p_prof.set_defaults(func=cmd_profile)
@@ -204,4 +319,7 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO if args.verbose else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",
     )
+    # Third-party request logs can include URLs (webhook path, Sheet id): keep them quiet.
+    for name in ("urllib3", "requests", "google", "gspread"):
+        logging.getLogger(name).setLevel(logging.WARNING)
     return args.func(args)

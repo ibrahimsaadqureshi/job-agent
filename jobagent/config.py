@@ -47,7 +47,7 @@ class Settings:
     score_batch_size: int = 10  # jobs per scoring request
     max_drafts_per_run: int = 12
     description_chars: int = 1000  # description length sent to the scorer
-    max_scored_per_run: int = 100  # default --limit, so a backfill spreads over several days
+    max_scored_per_run: int = 200  # default --limit: ~32 requests a run, well inside 500 a day
 
     @property
     def sheet_url(self) -> str:
@@ -109,5 +109,5 @@ def load_settings(
         score_batch_size=_int(env, "SCORE_BATCH_SIZE", 10),
         max_drafts_per_run=_int(env, "MAX_DRAFTS", 12),
         description_chars=_int(env, "DESCRIPTION_CHARS", 1000),
-        max_scored_per_run=_int(env, "MAX_SCORED_PER_RUN", 100),
+        max_scored_per_run=_int(env, "MAX_SCORED_PER_RUN", 200),
     )
