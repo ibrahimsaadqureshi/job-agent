@@ -93,7 +93,7 @@ def strip_contacts(text: str, *, strip_name: bool = True) -> str:
                     cleaned = re.sub(rf"\b{re.escape(part)}\b", NAME_PLACEHOLDER, cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"\(\s*\)|\[\s*\]", "", cleaned)  # brackets that held a link
         cleaned = re.sub(r"[ \t]{2,}", " ", cleaned).strip()
-        # Separators left dangling where contact details were: "Lahore | | |" -> "Lahore"
+        # Separators left dangling where contact details were: "Springfield | | |" -> "Springfield"
         cleaned = re.sub(r"(?:\s*[|•·]\s*){2,}", " | ", cleaned).strip()
         cleaned = re.sub(r"^(?:[|•·,;]\s*)+|(?:\s*[|•·,;])+$", "", cleaned).strip()
         if line.strip() and _LEFTOVER.match(cleaned):
