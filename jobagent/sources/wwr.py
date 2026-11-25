@@ -48,7 +48,9 @@ def parse_item(item: ET.Element) -> Job | None:
     location = region
     if countries:
         location = f"{region} ({', '.join(countries)})" if region else ", ".join(countries)
-    tags = as_tags([clean(item.findtext("category")), *as_tags(clean(item.findtext("skills")))])
+    # Tags are the listed skills only: WWR's board category ("Full-Stack Programming") is
+    # often wrong for the job (statisticians, estimators), so it would mislead the filters.
+    tags = as_tags(clean(item.findtext("skills")))
     return Job(
         source="wwr",
         url=link,

@@ -122,7 +122,7 @@ def test_wwr_parse():
 
     customer_io = next(j for j in jobs if j.company == "Customer.io")
     assert customer_io.title == "Senior Software Engineer, Backend"
-    assert customer_io.tags == ("full stack programming",)
+    assert customer_io.tags == ()  # no skills listed; the board category is not a tag
     assert "Headquarters" in customer_io.description and "&lt;" not in customer_io.description
 
 
