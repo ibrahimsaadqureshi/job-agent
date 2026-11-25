@@ -31,17 +31,23 @@ class Settings:
     sheet_id: str = ""
     slack_webhook_url: str = ""
     candidate_profile: str = ""
+    github_token: str = ""  # GitHub Models fallback; CI passes the built-in GITHUB_TOKEN
 
     # Local-only
     resume_path: str = ""
 
     # Behaviour
     llm_provider: str = "gemini"  # gemini | github | ollama
+    gemini_model: str = "gemini-3.1-flash-lite"  # cheapest current Flash-class model (2026-11-25)
+    github_model: str = "openai/gpt-4.1-mini"
+    ollama_model: str = "qwen2.5:7b"
+    ollama_url: str = "http://127.0.0.1:11434"
     score_threshold: int = 70  # min score for a draft note and a digest slot
     digest_max_jobs: int = 12
     score_batch_size: int = 10  # jobs per scoring request
     max_drafts_per_run: int = 12
     description_chars: int = 1000  # description length sent to the scorer
+    max_scored_per_run: int = 100  # default --limit, so a backfill spreads over several days
 
     @property
     def sheet_url(self) -> str:
@@ -91,8 +97,17 @@ def load_settings(
         sheet_id=env.get("SHEET_ID", "").strip(),
         slack_webhook_url=env.get("SLACK_WEBHOOK_URL", "").strip(),
         candidate_profile=env.get("CANDIDATE_PROFILE", "").strip(),
+        github_token=(env.get("GITHUB_MODELS_TOKEN", "") or env.get("GITHUB_TOKEN", "")).strip(),
         resume_path=str(local.get("resume_path", "")).strip(),
         llm_provider=env.get("LLM_PROVIDER", "gemini").strip().lower() or "gemini",
+        gemini_model=env.get("GEMINI_MODEL", "").strip() or Settings.gemini_model,
+        github_model=env.get("GITHUB_MODELS_MODEL", "").strip() or Settings.github_model,
+        ollama_model=env.get("OLLAMA_MODEL", "").strip() or Settings.ollama_model,
+        ollama_url=env.get("OLLAMA_URL", "").strip() or Settings.ollama_url,
         score_threshold=_int(env, "SCORE_THRESHOLD", 70),
         digest_max_jobs=_int(env, "DIGEST_MAX_JOBS", 12),
+        score_batch_size=_int(env, "SCORE_BATCH_SIZE", 10),
+        max_drafts_per_run=_int(env, "MAX_DRAFTS", 12),
+        description_chars=_int(env, "DESCRIPTION_CHARS", 1000),
+        max_scored_per_run=_int(env, "MAX_SCORED_PER_RUN", 100),
     )
