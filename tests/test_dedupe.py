@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from jobagent.dedupe import dedupe_in_run, fingerprint, normalize_company, normalize_title
-from tests.fakes import make_job
+from fakes import make_job
 
 
 @pytest.mark.parametrize(

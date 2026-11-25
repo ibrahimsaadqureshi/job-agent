@@ -7,7 +7,7 @@ import pytest
 from jobagent import filters
 from jobagent.filters import LOCATION, NON_TECH, SENIORITY, WORK_AUTHORIZATION
 from jobagent.models import Category
-from tests.fakes import make_job
+from fakes import make_job
 
 STACK, AUTOMATION, ENTRY = Category.STACK, Category.AUTOMATION, Category.TECH_ENTRY
 
@@ -48,6 +48,11 @@ TITLES = [
     ("Senior Shopify Developer (Remote + Flexible)", ENTRY),
     ("Remote Full-Stack Django/React Developer (Non-US/Non-EU Position) - FULLY REMOTE", STACK),
     ("Agentic Python Engineer", ENTRY),
+    ("AI Automation Expert (n8n / Make / Zapier / AI Agents)", AUTOMATION),
+    ("GHL Specialist", AUTOMATION),
+    ("CRM Specialist", AUTOMATION),
+    ("Marketing Automation Specialist", AUTOMATION),  # automation beats the "marketing" drop
+    ("QA Engineer - Mid Level (Automation Focus)", ENTRY),
     # dropped: not a tech role
     ("Field Marketing Coordinator, Upmarket", NON_TECH),
     ("Senior TA Operations Specialist", NON_TECH),
@@ -71,6 +76,10 @@ TITLES = [
     ("Customer Success Manager", NON_TECH),
     ("Junior Video Editor: Direct Response Ads", NON_TECH),
     ("Principal Executive Recruiter, R&D", NON_TECH),
+    ("Language Alignment & Resource Partner (Korean) - Freelance AI Trainer Project", NON_TECH),
+    ("German Speaker - AI Trainer", NON_TECH),
+    ("AI GTM Lead", NON_TECH),
+    ("ROBOTICS ENGINEER", NON_TECH),
     # dropped: too senior (Senior itself is kept, above)
     ("Staff Software Engineer", SENIORITY),
     ("Senior Manager, Enterprise Application Development Engineering", SENIORITY),
@@ -127,6 +136,11 @@ def test_stack_category_from_tags_and_description():
     assert filters.evaluate(job).category == AUTOMATION
 
 
+def test_infrastructure_automation_tag_is_not_the_automation_category():
+    job = make_job(title="Senior DevOps Engineer (Puppet)", tags=("automation", "devops"), description="", location="Worldwide")
+    assert filters.evaluate(job).category == ENTRY
+
+
 def test_tags_alone_do_not_make_a_title_technical():
     job = make_job(title="Senior Tax Associate", tags=("technical", "sys admin"), description="", location="Worldwide")
     assert filters.evaluate(job).reason == NON_TECH
@@ -137,6 +151,9 @@ def test_hn_post_without_role_is_judged_by_text():
     assert filters.evaluate(tech).keep
     nontech = make_job(source="hn", title="See post", location="REMOTE (Worldwide)", description="We are hiring a bookkeeper.")
     assert filters.evaluate(nontech).reason == NON_TECH
+    mixed = make_job(source="hn", title="engineering, GTM, product, sales", location="SF Bay, Toronto, APAC, Remote")
+    assert filters.evaluate(mixed).keep
+    assert verdict_for_title("Sales / Account Executive GovTech").reason == NON_TECH
     multi = make_job(source="hn", title="Multiple Positions", location="REMOTE (Worldwide)", description="Software engineers wanted.")
     assert filters.evaluate(multi).keep
 

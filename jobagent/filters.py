@@ -38,14 +38,23 @@ def _words(*terms: str) -> re.Pattern[str]:
 
 # --- Category -------------------------------------------------------------------------
 
-_AUTOMATION = _words(
+_ENGINEERING = _words(r"engineering", r"eng")
+# Separators between alternative roles or levels in one title.
+_ALTERNATIVES = re.compile(r"\s*(?:/|,|\+|&|;|\band\b|\bor\b)\s*", re.IGNORECASE)
+
+_AUTOMATION_TERMS = (
     r"n8n", r"zapier", r"make\.com", r"go ?high ?level", r"highlevel", r"ghl",
     r"(?:workflow|business|process|marketing|sales|ai|crm|no-?code|low-?code|revops)[ -]automation",
-    r"automations?",
     r"revops", r"rev ?ops", r"revenue operations", r"crm", r"hubspot", r"salesforce", r"airtable",
     r"low-?code", r"no-?code", r"power automate", r"rpa", r"uipath",
     r"integrations?(?: engineer| developer| specialist)?",
 )
+# Tags and descriptions say "automation" for infrastructure work too (DevOps, CI), so only
+# the specific terms count there; a title saying "Automation Specialist" is enough.
+_AUTOMATION = _words(*_AUTOMATION_TERMS)
+_AUTOMATION_TITLE = _words(*_AUTOMATION_TERMS, r"automations?")
+_QA_TITLE = _words(r"qa", r"test", r"tester", r"testing", r"sdet", r"quality assurance")
+_AUTOMATION_TOOLS = _words(r"n8n", r"zapier", r"make\.com", r"go ?high ?level", r"highlevel")  # in descriptions
 _QA_AUTOMATION = _words(r"test automation", r"qa automation", r"automation (?:qa|test|tester|testing)")
 
 _STACK = _words(
@@ -91,7 +100,7 @@ _NON_TECH = _words(
     r"translator", r"transcription", r"data entry", r"nurse", r"physician", r"therapist", r"clinical",
     r"medical", r"insurance", r"underwriter", r"real estate", r"mortgage", r"procurement", r"logistics",
     r"supply chain", r"events?", r"community (?:manager|lead|specialist|moderator)", r"partnerships?", r"fundraising", r"operations", r"coordinator",
-    r"phd",
+    r"phd", r"gtm", r"go-to-market", r"language alignment", r"speakers?", r"linguists?",
 )
 # Words that make a title technical even next to a non-tech word.
 _RESCUE = _words(
@@ -104,6 +113,7 @@ _OTHER_ENGINEERING = _words(
     r"mechanical", r"civil", r"structural", r"electrical", r"chemical", r"mep", r"hvac", r"metrology",
     r"manufacturing", r"petroleum", r"mining", r"geotechnical", r"biomedical", r"industrial", r"aerospace",
     r"cnc", r"plumbing", r"process engineer", r"surveyor", r"estimator", r"construction",
+    r"robotics", r"thermal", r"cfd", r"mbse", r"sysml", r"hardware",
 )
 _PHD = _words(r"ph\.?d\.?")
 _RESEARCH = _words(r"research scientist", r"researcher", r"research engineer")
@@ -113,6 +123,14 @@ _RESEARCH = _words(r"research scientist", r"researcher", r"research engineer")
 _MULTI_ROLE = re.compile(r"^\W*(?:multiple|various|several|many|all)\b.*\b(?:positions|roles|openings)\b", re.IGNORECASE)
 
 
+def _tech_alternative(title: str) -> bool:
+    """A multi-role title ("engineering, GTM, product, sales") with at least one tech role."""
+    parts = [p for p in _ALTERNATIVES.split(title) if p.strip()]
+    return len(parts) > 1 and any(
+        (_ROLE_NOUN.search(p) or _ENGINEERING.search(p)) and not _NON_TECH.search(p) for p in parts
+    )
+
+
 def _category(job: Job) -> Category | None:
     """The digest section for a technical job, or None for a non-tech one."""
     title = job.title.strip()
@@ -120,8 +138,10 @@ def _category(job: Job) -> Category | None:
         title = NO_ROLE
     tags = " ".join(job.tags)
     if title and title != NO_ROLE:
-        automation_title = _AUTOMATION.search(title) and not _QA_AUTOMATION.search(title)
-        if _NON_TECH.search(title) and not _RESCUE.search(title) and not automation_title:
+        automation_title = _AUTOMATION_TITLE.search(title) and not (
+            _QA_AUTOMATION.search(title) or (_QA_TITLE.search(title) and not _AUTOMATION.search(title))
+        )
+        if _NON_TECH.search(title) and not _RESCUE.search(title) and not automation_title and not _tech_alternative(title):
             return None
         if _OTHER_ENGINEERING.search(title) and not _words(r"software", r"firmware", r"embedded").search(title):
             return None
@@ -144,7 +164,7 @@ def _category(job: Job) -> Category | None:
     if _STACK.search(_REACT_NATIVE.sub(" ", tags)):
         return Category.STACK
     text = job.description
-    if _words(r"n8n", r"zapier", r"make\.com", r"go ?high ?level", r"highlevel").search(text):
+    if _AUTOMATION_TOOLS.search(text):
         return Category.AUTOMATION
     if len({m.group(0).lower().replace(".", "") for m in _STACK_DESCRIPTION.finditer(_REACT_NATIVE.sub(" ", text))}) >= 2:
         return Category.STACK
@@ -160,7 +180,6 @@ _TOO_SENIOR = _words(
 _NOT_SENIORITY = _words(r"member of technical staff", r"mts")  # a common IC title, not staff level
 
 
-_ALTERNATIVES = re.compile(r"\s*(?:/|,|\+|&|;|\band\b|\bor\b)\s*", re.IGNORECASE)
 _LEVEL = re.compile(r"\W*(?:senior|sr\.?|junior|jr\.?|mid(?:-level)?|intermediate|associate|entry(?:-level)?)\W*", re.IGNORECASE)
 _ROLE_NOUN = _words(
     r"engineers?", r"developers?", r"scientists?", r"sres?", r"fdes?", r"designers?", r"analysts?",
