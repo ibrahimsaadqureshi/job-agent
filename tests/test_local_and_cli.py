@@ -38,7 +38,8 @@ def isolated_state(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "load_settings", lambda: cli.Settings())
 
 
-def test_cli_dry_run_with_no_sources(isolated_state, capsys):
+def test_cli_dry_run_with_no_sources(isolated_state, capsys, monkeypatch):
+    monkeypatch.setattr(cli.source_registry, "ALL_SOURCES", [])  # no network in tests
     assert cli.main(["run", "--dry-run", "--no-llm"]) == 0
     out = capsys.readouterr().out
     assert "mode=dry-run sources=0 llm=off" in out
