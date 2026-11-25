@@ -1,173 +1,36 @@
 # Job Agent
 
-A local-first job discovery, ranking, and application intelligence system designed to help identify the highest-value opportunities with minimal manual effort.
+A free daily pipeline that finds remote tech jobs open to candidates in Pakistan, scores
+them against a resume with a free LLM, drafts short application notes, tracks everything in
+a Google Sheet and sends one Slack digest a day. A human reviews every job and applies by
+hand: there is no auto-apply.
 
-## Overview
+> **v2 is under construction.** The design and milestones are in [PLAN.md](PLAN.md). A full
+> README with architecture, setup and a sample digest arrives in milestone M7.
 
-Job Agent aggregates jobs from multiple sources, stores them in SQLite, ranks them based on relevance, and produces reports that surface the best opportunities for review.
+## Quick start (development)
 
-The project is designed around quality over quantity.
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/python -m pytest
+.venv/bin/python -m jobagent run --dry-run --no-llm
+```
 
-Goal:
+## Layout
 
-Sources
-↓
-Central Database
-↓
-Relevance Ranking
-↓
-Top Opportunities Report
-↓
-Resume Intelligence
-↓
-Recruiter Outreach
-↓
-Application Automation
-
-## Current Features
-
-### Job Sources
-
-* YC Jobs
-* Greenhouse
-* RemoteOK
-
-### Database
-
-* SQLite storage
-* URL-based deduplication
-* Unified job schema
-
-### Description Extraction
-
-Descriptions are extracted and normalized from all supported sources:
-
-* YC job pages
-* Greenhouse Boards API
-* RemoteOK API
-
-### Ranking Engine
-
-Current ranking factors include:
-
-* Positive keyword scoring
-* Role bonuses
-* Junior/new-grad bonuses
-* Seniority penalties
-* Experience requirement penalties
-* Role-fit scoring
-* Description-aware relevance matching
-
-### Reporting
-
-Available reports:
-
-* Source counts
-* Sample jobs
-* Top ranked jobs
-
-Top jobs reporting includes report-level duplicate suppression.
-
-## Technology Stack
-
-* Python
-* SQLite
-* Git
-* GitHub
-
-Development Environment:
-
-* Pop!_OS
-* Python virtual environment
-
-## Current Architecture
-
-Sources
-↓
-Normalization
-↓
-SQLite Database
-↓
-Ranking Engine
-↓
-Reports
-
-Database location:
-
-database/jobs.db
-
-## Project Status
-
-### Phase 1 — Complete
-
-* Database
-* Scrapers
-* Deduplication
-* Data validation
-
-### Phase 2 — Complete
-
-* Ranking engine
-* Relevance scoring
-* Reporting
-
-### Phase 2.5 — Complete
-
-* Experience-aware ranking
-* Seniority penalties
-* Junior bonuses
-* Role-fit scoring
-* Duplicate investigation
-* Report deduplication
-
-### Phase 3 — Planned
-
-Resume Intelligence using Ollama.
-
-Planned outputs:
-
-* Match score
-* Missing skills
-* Recruiter summary
-* Resume recommendations
-
-### Future Roadmap
-
-Phase 4
-
-* Resume tailoring
-
-Phase 5
-
-* Dashboard and reporting
-
-Phase 6
-
-* Additional job sources
-
-Phase 7
-
-* Recruiter outreach
-
-Phase 8
-
-* Application automation
-
-Phase 9
-
-* Telegram approval workflow
-
-## Design Philosophy
-
-The objective is not maximum application volume.
-
-The objective is:
-
-* Better targeting
-* Faster applications
-* Stronger fit
-* Better resume alignment
-* Higher quality opportunities
-
-Quality over quantity.
-
+```
+jobagent/
+  models.py       Job, Verdict, Assessment, Candidate, TrackerRow, Sheet columns, job ids
+  interfaces.py   Source, Scorer, Tracker, Notifier protocols + Digest
+  pipeline.py     fetch -> filter -> dedupe -> score -> draft -> track -> digest
+  filters.py      category / location / seniority rules        (M2)
+  dedupe.py       in-run duplicate collapsing                    (M2)
+  digest.py       pick and render the daily digest
+  local.py        .state/ tracker + console notifier for dry and local runs
+  config.py       env vars + gitignored config.local.toml
+  net.py          shared HTTP session (honest User-Agent, timeout, retry)
+  cli.py          python -m jobagent run [--dry-run | --local] [--no-llm] [--limit N] [--sources a,b]
+  sources/        one module per job board                       (M1)
+tests/            pytest, no network; fakes.py has in-memory versions of every interface
+```

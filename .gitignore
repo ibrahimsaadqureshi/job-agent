@@ -1,16 +1,26 @@
-venv/
+# Python
 __pycache__/
 *.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
 
-database/jobs.db
-
+# Secrets and personal data: never commit
 .env
+config.local.toml
+*.pdf
+profile*.txt
+service-account*.json
 
+# Local run state (dry-run "seen" store, debug dumps)
+.state/
+failed_response*
+logs/
+*.log
+
+# Editors / OS / tooling
 .idea/
 .vscode/
-
-logs/
-
-*.log
-*.sqlite
-*_backup.db
+.DS_Store
+.claude/

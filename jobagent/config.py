@@ -1,0 +1,91 @@
+"""All configuration in one place.
+
+Secrets come from environment variables only: a local `.env` file (gitignored), or
+GitHub Actions secrets in CI. Local-only, non-secret paths (the resume PDF) come from
+a gitignored `config.local.toml`. Nothing personal lives in the repo.
+"""
+
+from __future__ import annotations
+
+import os
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+STATE_DIR = PROJECT_ROOT / ".state"
+
+
+@dataclass(frozen=True)
+class Settings:
+    # Secrets / credentials (empty string = not configured)
+    gemini_api_key: str = ""
+    google_service_account_json: str = ""
+    sheet_id: str = ""
+    slack_webhook_url: str = ""
+    candidate_profile: str = ""
+
+    # Local-only
+    resume_path: str = ""
+
+    # Behaviour
+    llm_provider: str = "gemini"  # gemini | github | ollama
+    score_threshold: int = 70  # min score for a draft note and a digest slot
+    digest_max_jobs: int = 12
+    score_batch_size: int = 10  # jobs per scoring request
+    max_drafts_per_run: int = 12
+    description_chars: int = 1000  # description length sent to the scorer
+
+    @property
+    def sheet_url(self) -> str:
+        return f"https://docs.google.com/spreadsheets/d/{self.sheet_id}" if self.sheet_id else ""
+
+    def missing(self, *names: str) -> list[str]:
+        """Names of the given settings that are empty, e.g. missing("sheet_id")."""
+        return [n for n in names if not getattr(self, n)]
+
+
+def _int(env: dict[str, str], key: str, default: int) -> int:
+    raw = env.get(key, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{key} must be an integer, got {raw!r}") from exc
+
+
+def load_settings(
+    env: dict[str, str] | None = None,
+    local_config: Path | None = None,
+    dotenv: Path | None = None,
+) -> Settings:
+    """Build Settings from the environment (+ .env) and config.local.toml.
+
+    Real environment variables win over .env values, so CI secrets always apply.
+    """
+    if env is None:
+        env = dict(os.environ)
+        dotenv_path = dotenv if dotenv is not None else PROJECT_ROOT / ".env"
+        if dotenv_path.exists():
+            from dotenv import dotenv_values
+
+            file_values = {k: v for k, v in dotenv_values(dotenv_path).items() if v is not None}
+            env = {**file_values, **env}
+
+    local_path = local_config if local_config is not None else PROJECT_ROOT / "config.local.toml"
+    local: dict = {}
+    if local_path.exists():
+        local = tomllib.loads(local_path.read_text(encoding="utf-8"))
+
+    return Settings(
+        gemini_api_key=env.get("GEMINI_API_KEY", "").strip(),
+        google_service_account_json=env.get("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip(),
+        sheet_id=env.get("SHEET_ID", "").strip(),
+        slack_webhook_url=env.get("SLACK_WEBHOOK_URL", "").strip(),
+        candidate_profile=env.get("CANDIDATE_PROFILE", "").strip(),
+        resume_path=str(local.get("resume_path", "")).strip(),
+        llm_provider=env.get("LLM_PROVIDER", "gemini").strip().lower() or "gemini",
+        score_threshold=_int(env, "SCORE_THRESHOLD", 70),
+        digest_max_jobs=_int(env, "DIGEST_MAX_JOBS", 12),
+    )

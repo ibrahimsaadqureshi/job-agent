@@ -1,0 +1,4 @@
+# Copy to config.local.toml (gitignored). Local-only settings that must never be committed.
+
+# Absolute path to your resume PDF. Contact lines are stripped before any text reaches an LLM.
+resume_path = "/path/to/your/resume.pdf"
