@@ -22,8 +22,11 @@ Rules:
 - If the job needs something the profile doesn't name, you may say once, plainly, that it is new to you and how related experience will help you learn it. Related experience is not direct experience: don't describe it as if it were.
 - Name one concrete project or achievement from the profile that matches the job, with its real details. Don't invent numbers, employers, titles, dates, degrees or users.
 - State experience honestly, as the profile gives it. Don't inflate years or seniority.
+- Every statement about what you did or can do must trace back to a line in the profile. No generic padding such as "managing state", "build dependencies" or "autonomous problem-solving" unless the profile says it.
 - When in doubt, be conservative and leave it out.
-- Be direct and specific. No clichés: never write "I am excited to apply", "I am writing to", "passionate", "perfect fit", "hit the ground running", "fast-paced", "dynamic", "synergy" or "I believe I would be a great".
+- Be direct and specific. No clichés: never write "I am excited to apply", "I am writing to", "passionate", "perfect fit", "hit the ground running", "fast-paced", "dynamic", "synergy", "aligns with", "I am determined" or "I believe I would be a great".
+- End on a concrete point about the work, not a generic closing line.
+- Don't claim time-zone overlap, availability, location fit or work authorization unless the job and profile both state it.
 - No contact details, links or placeholders like [Name].
 
 Return only the note.

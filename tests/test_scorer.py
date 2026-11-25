@@ -289,3 +289,19 @@ def test_draft_raises_when_no_provider_produces_a_note():
     failing = EchoProvider("a", fail_with=RateLimited("a"))
     with pytest.raises(DraftError):
         scorer_with(failing).draft(make_job(1), PROFILE, "reason")
+
+
+def test_years_caps_are_enforced_in_code():
+    from jobagent.scorer import apply_caps
+
+    assert apply_caps(90, None) == 90
+    assert apply_caps(90, 3) == 90
+    assert apply_caps(90, 5) == 40
+    assert apply_caps(90, 7) == 25
+    assert apply_caps(10, 9) == 10
+
+
+def test_score_applies_years_cap_to_model_output():
+    job = make_job(1, description="You have 8+ years of backend experience in Go.")
+    out = scorer_with(EchoProvider(score=80)).score([job], PROFILE)
+    assert out[job.id][0] == 25

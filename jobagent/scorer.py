@@ -44,6 +44,20 @@ SCORE_SCHEMA: dict = {
 }
 
 
+# Hard caps by years asked, enforced in code because the model doesn't always apply them.
+# PLAN.md section 3: senior roles asking 5+ years score low.
+YEARS_CAPS: tuple[tuple[int, int], ...] = ((7, 25), (5, 40))
+
+
+def apply_caps(score: int, required_years: int | None) -> int:
+    if required_years is None:
+        return score
+    for min_years, cap in YEARS_CAPS:
+        if required_years >= min_years:
+            return min(score, cap)
+    return score
+
+
 class DraftError(RuntimeError):
     """No provider produced a usable draft. The pipeline skips the note for that job."""
 
@@ -261,8 +275,9 @@ class LLMScorer:
                 return None
 
             parsed = self.chain.run(task) or {}
-            for key, value in parsed.items():
-                results[by_key[key].id] = value
+            for key, (score, reason) in parsed.items():
+                job = by_key[key]
+                results[job.id] = (apply_caps(score, filters.required_years(job.description)), reason)
             log.info("score batch %d/%d: %d of %d scored", n, len(batches), len(parsed), len(batch))
         return results
 
@@ -271,7 +286,7 @@ class LLMScorer:
 
         def task(provider: Provider) -> str | None:
             for _ in range(2):
-                note = clean_draft(provider.generate(prompt, max_tokens=500, temperature=0.4))
+                note = clean_draft(provider.generate(prompt, max_tokens=500, temperature=0.3))
                 if note:
                     return note
             return None

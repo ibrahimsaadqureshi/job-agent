@@ -23,7 +23,7 @@ Score bands:
 - 0-24: not realistic.
 
 Hard caps (apply the lowest one that fits):
-- required_years is 5 or 6: score at most 40. 7 or more: at most 25.
+- Years asked (required_years, or the text) vs. the candidate's real experience: 1 year more is fine; 2 years more, at most 60; 3 or 4 years more, at most 45. 5 or 6 years asked: at most 40. 7 or more: at most 25.
 - Text hints at a region lock even though the location looks open (must live in or be a citizen of one country, a timezone far from UTC+5 with long required overlap, "US-based", a named city): at most 30.
 - "Talent pool" agencies and marketplaces that mass-post near-identical roles to collect applicants (for example Hivex, micro1, Xperteez, or any "join our talent network/pool", "we'll match you with clients" posting): at most 30.
 - Staff, principal, lead, architect or manager level: at most 25.
