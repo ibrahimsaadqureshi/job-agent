@@ -34,9 +34,9 @@ roles are kept and left to the LLM, and **automation gigs** appear in the digest
 
 An old experiment branch committed a sample resume with personal contact details. `main`
 never contained it, and the repo was private at the time. Before making the repo public:
-1. Build v2 on a fresh branch cut from `main`, so the resume never enters its history.
-2. Delete that experiment branch from the remote.
-3. Optional: ask GitHub Support to purge cached views of the commit.
+1. Build v2 on a fresh branch cut from `main`, so the resume never enters its history. (Done.)
+2. Delete that experiment branch from the remote. (Done in session 5.)
+3. Ask GitHub Support to purge the now-unreferenced commits. (Owner to-do: see session 5.)
 
 From v2 on, the resume and every personal detail stay out of git. The resume is loaded at
 runtime from a gitignored path locally, and from a secret in CI.
@@ -80,8 +80,8 @@ Two gotchas to design around:
   never print resume text, drafts or the Sheet ID. Logs show counts only. Secrets are
   masked automatically, but we won't rely on that alone.
 - **Cron auto-disable.** GitHub disables scheduled workflows in public repos after 60
-  days without repo activity. A small monthly keepalive step re-enables the workflow
-  through the API, with no dummy commits.
+  days without repo activity. A small keepalive workflow re-enables the scheduled
+  workflows through the API twice a month, with no dummy commits.
 
 ### Flow
 
@@ -232,7 +232,8 @@ in the text is passed to the LLM as a hint.
 - **Primary: Google Gemini API, free tier** (an AI Studio key, with no billing account
   attached, so it can't charge). I'll use the cheapest current Flash-class model and confirm
   the exact model name and free quota with `models.list` on your key in M3, before relying on it.
-- **Fallback: GitHub Models** (free and rate-limited, using the workflow's built-in
+- **Fallback: GitHub Models** (update, session 5: GitHub retired this service in 2026, so CI
+  no longer uses it; see the progress log) (free and rate-limited, using the workflow's built-in
   `GITHUB_TOKEN` with `models: read`, so there's no extra key). This replaces Ollama in CI,
   because a 7B model on a 2-core runner is too slow. I couldn't confirm its catalog without
   that permission, so I'll verify it in M3. If it doesn't work, the fallback is simply "leave
@@ -574,3 +575,70 @@ Never paste a key into a chat. Open the file with
     - The Slack delivery check is HTTP 200 from the webhook. The owner checked `#jobs` and confirmed the digest looks right.
   - **Next: session 5, M6 + M7** (GitHub Actions daily run, Step D secrets script, README,
     publish). Must be cut from this branch.
+- **Session 5 (2026-11-25): M6 GitHub Actions + M7 README done, repo published.**
+  - Branch `claude/v2-session5-0d8778` (cut from `claude/v2-session4-e7199c` at `0bda440`),
+    fast-forwarded onto `main`. 340 tests pass locally and in Actions.
+  - **`daily.yml`:** cron `0 3 * * *` (08:00 PKT) + `workflow_dispatch` with an optional
+    `limit` input (validated as a whole number, passed through env, never inlined into the
+    script). `permissions: contents: read` only. Concurrency group `daily-run` (queues, never
+    overlaps), `timeout-minutes: 30`, `actions/checkout@v7` (no persisted credentials),
+    `actions/setup-python@v7` with Python 3.12 and pip caching, `pip install -e '.[sheets]'`
+    (pypdf is imported lazily, so no resume extra: CI reads `CANDIDATE_PROFILE`).
+    `PYTHONUNBUFFERED=1` keeps printed counts and warnings in order. Secrets:
+    `GEMINI_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`, `SLACK_WEBHOOK_URL`,
+    `CANDIDATE_PROFILE`.
+  - **`tests.yml`:** pytest on every push and pull request, `.[dev,sheets,resume]`.
+  - **Keepalive decision:** a separate `keepalive.yml` runs on the 1st and 15th
+    (`17 4 1,15 * *`, twice because scheduled runs are sometimes skipped) and calls
+    `PUT /repos/{repo}/actions/workflows/{daily,keepalive}.yml/enable` with the built-in
+    `GITHUB_TOKEN` and `permissions: actions: write`. No commits. GitHub doesn't document
+    whether re-enabling resets the 60-day counter, but the established community tools rely
+    on exactly that (keepalive-workflow v2's API mode, which replaced its dummy commits, and
+    gh-workflow-immortality), and verified live: the manual run re-enabled both workflows.
+    Safety net if it ever fails: the digest is sent every day (even "nothing new"), so a
+    missing digest is the alarm, and GitHub emails the owner when it disables a workflow;
+    re-enabling is one click in the Actions tab.
+  - **`scripts/setup_secrets.sh` (Step D):** reads `~/.config/job-agent/.env` with
+    python-dotenv and the profile from `python -m jobagent profile`, refuses if any value is
+    empty (sets nothing), feeds each value to `gh secret set` on stdin, prints only `set NAME`.
+    Written for macOS's bash 3.2 (no associative arrays). Tested with a stub `gh`. The owner
+    ran it; `gh secret list` shows all five names.
+  - **README** rewritten as a portfolio piece: what and why, a mermaid diagram, sources with
+    attribution, filtering, scoring and the draft anti-hallucination rules, privacy, setup,
+    CLI, Actions, testing, limits. `docs/digest.png` is a real digest screenshot from the owner,
+    checked by eye (no Sheet link, webhook, name, email or phone) and stripped of its EXIF/XMP
+    metadata. This file was made to read as a design doc (status line, no personal experience
+    details).
+  - **Live runs on GitHub (repo still private):**
+    - Manual run 1 (default settings): success in 13 min. fetched=1126 kept=370
+      already_seen=29 new=326 scored=200 drafted=11 written=200. The Sheet went from 30 to 230
+      rows, 230 unique ids. One Gemini call timed out (ReadTimeout after one retry), so one
+      draft was skipped. The owner confirmed the digest arrived in Slack.
+    - Logs checked line by line: counts and the three warnings only. No key, Sheet id,
+      webhook, service-account detail, profile line, job title, reason or draft.
+  - **GitHub Models fallback: does not work, because GitHub retired the service** (retirement
+    started June 2026 and was reported complete in August 2026). `models.github.ai` now answers
+    every request, including the catalog and requests with a fake token, with `200 text/plain
+    OK`. That is the "bare 200 OK" session 3 saw from the Mac. Verified live from Actions twice:
+    run 1 logged `github: response was not JSON`, and a forced run (`LLM_PROVIDER=github`,
+    `--limit 3`) tried GitHub first, skipped it, and Gemini scored all 3 (written=3, owner
+    confirmed the digest). So `daily.yml` dropped `models: read`, the `GITHUB_TOKEN` env and
+    the provider input. The provider code stays for anyone who still has access. In CI, Gemini
+    is the only provider, and jobs it can't score wait for the next run.
+  - **Publishing:** Gate 1, `main` fast-forwarded to v2 (`23f5800..df82c5f`, then the
+    screenshot and the CI fix). Gate 2, the old experiment branch with the resume was deleted
+    from the remote, and no remaining branch, tag or PR contains that commit or file. Gate 3,
+    the repo is **public**; all three workflows are active. Every push was scanned first for the
+    resume, phone, emails, keys, Sheet id, webhook and service-account details: none found.
+  - **Surprise:** deleting the branch doesn't hide it fully. GitHub's repo Activity view still
+    lists the deleted branch's pushes, and the old commits are still served by id. The owner
+    was told and chose to publish now and ask GitHub Support for a purge.
+  - **Owner to-dos:**
+    - Ask GitHub Support (support.github.com → "Remove data from a repository") to purge the
+      deleted experiment branch's unreferenced commits and cached views. The commit id is in
+      the owner's local checkout and the session notes, not here.
+    - The owner's local checkout still has that branch and uncommitted work. Keep the resume
+      out of any future push.
+    - Optional: delete the empty `Sheet1` tab in the Sheet.
+  - **Next (ideas, not scheduled):** a second free Gemini model as the CI fallback (free-tier
+    quotas are per model); the Jobicy source; reply tracking.
