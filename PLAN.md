@@ -477,3 +477,51 @@ Never paste a key into a chat. Open the file with
       patches the registry empty.
   - **Next: session 3, M3.** Needs owner Step A (Gemini key) first, and must be cut from this
     branch.
+- **Session 3 (2026-11-25): M3 LLM scoring + drafts done.**
+  - Branch `claude/v2-session3-b32d99` (cut from `claude/v2-session2-c0ec9f` at `2c12084`). 306 tests pass.
+  - **Profile** (`profile.py`): pypdf in layout mode (plain mode gave one word per line), then
+    `strip_contacts` removes emails, phones, URLs, bare domains (LinkedIn, GitHub, the company
+    site) and the name line, which becomes "The candidate". `CANDIDATE_PROFILE` wins when set.
+    `python -m jobagent profile` prints the stripped text for the session 5 secret. Checked on the
+    real resume with counts only: 0 emails, phones, links or name parts left, ~900 tokens.
+  - **Model: `gemini-3.1-flash-lite`** (override with `GEMINI_MODEL`). `models.list` on the owner's
+    key lists it, stable, 1,048,576 input / 65,536 output tokens. It is the cheapest current,
+    stable Flash-class model that's open to new users (`gemini-2.5-flash-lite` is cheaper but
+    limited to existing users, and `gemini-2.5-flash` is retired on 2026-12-01). Calls succeed
+    with no billing on the key.
+  - **Free-tier limits could not be confirmed:** the docs say per-model RPM/TPM/RPD are only shown
+    in AI Studio (aistudio.google.com/rate-limit), and responses carry no limit headers. So the
+    client paces at 6 s between calls (10 per minute), retries a 429/5xx once after a short wait
+    (server delay, capped at 20 s), and gives up at once when Google asks for a longer wait (daily
+    quota gone). Thinking is set to "minimal". This session used about 15 requests.
+  - **Fallbacks:** chain = configured provider, then the other hosted one with credentials, then
+    unscored. A provider that hits 429 after its retry, or a 4xx, is skipped for the rest of the
+    run. **GitHub Models is implemented but not verified live:** from this Mac, `models.github.ai`
+    answers every request (catalog and chat) with a bare `200 OK` text body, and the `gh` login
+    token has no `models` scope anyway. Verify it in session 5 from Actions (`permissions: models:
+    read`, `GITHUB_TOKEN`). **Ollama** is implemented (`LLM_PROVIDER=ollama`) but untested: not
+    installed here.
+  - **Scorer** (`scorer.py`, prompts in `prompts/`): batches of 10 with short ids (`j1`...) mapped
+    back to real ids, JSON mode with a schema. The validator drops bad items (unknown or duplicate
+    ids, scores out of 0-100, empty reasons), accepts `"85"` and `85.0`, strips fences and prose,
+    and salvages complete items from truncated JSON. Unusable output: one retry, then the next
+    provider. `category` and `location_rule` are recomputed with `filters.evaluate` inside the
+    scorer, so the `Scorer` contract didn't change.
+  - **Quality notes from the live runs** (`--limit 5`, `--limit 20`, and a hand-picked batch of 10):
+    - Junior React/full-stack roles scored 75-85. The Customer.io senior backend role (7+ years)
+      scored 25. All Hivex, micro1 and Xperteez posts scored 25-30. Philippines-only and US-locked
+      jobs that slipped past the filters were caught at 30.
+    - The model once ignored the 7+ years cap (it gave 40), so the 5+ (40) and 7+ (25) caps are
+      now also enforced in code after scoring (`apply_caps`).
+    - Drafts: every skill and project they cite was checked against the profile. Missing skills
+      are framed as "new to me". Early drafts added a time-zone claim, generic padding ("managing
+      state") and filler endings, so `draft.txt` now bans those. Notes land at 105-115 words.
+  - **Settings added** (`config.py`, all optional): `GEMINI_MODEL`, `GITHUB_MODELS_TOKEN` (falls
+    back to `GITHUB_TOKEN`), `GITHUB_MODELS_MODEL`, `OLLAMA_MODEL`, `OLLAMA_URL`,
+    `SCORE_BATCH_SIZE`, `MAX_DRAFTS`, `DESCRIPTION_CHARS`, `MAX_SCORED_PER_RUN` (default 100,
+    which is now the default `--limit` when the LLM is on, so the ~350-job backlog spreads over
+    about 4 days).
+  - The `llm.py` in section 1's layout became a package: `jobagent/llm/` (base, gemini,
+    github_models, ollama).
+  - **Next: session 4, M4 + M5.** Needs owner Steps B and C first, and must be cut from this
+    branch.
