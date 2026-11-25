@@ -7,20 +7,17 @@ on:
     - cron: "0 3 * * *" # 03:00 UTC = 08:00 Pakistan time
   workflow_dispatch:
     inputs:
-      provider:
-        description: "LLM provider to try first (default: gemini)"
-        type: choice
-        options: [default, gemini, github]
-        default: default
       limit:
         description: "Score at most this many jobs (blank = the usual 200)"
         type: string
         required: false
         default: ""
 
+# Read-only. (GitHub Models, the planned free fallback, was retired by GitHub in 2026, so the
+# run no longer asks for models: read or passes GITHUB_TOKEN to the app. Jobs that Gemini
+# can't score stay unscored and are retried the next day.)
 permissions:
-  contents: read # check out the code
-  models: read # GitHub Models fallback through GITHUB_TOKEN
+  contents: read
 
 concurrency:
   group: daily-run
@@ -52,13 +49,9 @@ jobs:
           SHEET_ID: ${{ secrets.SHEET_ID }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           CANDIDATE_PROFILE: ${{ secrets.CANDIDATE_PROFILE }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PROVIDER_INPUT: ${{ inputs.provider }}
+          PYTHONUNBUFFERED: "1" # keep printed counts and warnings in order
           LIMIT_INPUT: ${{ inputs.limit }}
         run: |
-          if [ -n "$PROVIDER_INPUT" ] && [ "$PROVIDER_INPUT" != "default" ]; then
-            export LLM_PROVIDER="$PROVIDER_INPUT"
-          fi
           args=(run)
           if [ -n "$LIMIT_INPUT" ]; then
             if ! [[ "$LIMIT_INPUT" =~ ^[0-9]+$ ]]; then
