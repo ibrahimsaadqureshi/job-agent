@@ -221,7 +221,7 @@ in the text is passed to the LLM as a hint.
   keyword filter gets a row (even if it scored low), so it's never re-scored or re-sent.
   The Sheet is the single source of truth, so the Actions runner needs no database and no
   state commits.
-- In dry-run, a local gitignored `.state/seen.json` stands in for the Sheet.
+- In dry-run, a local `~/.config/job-agent/state/seen.json` stands in for the Sheet.
 
 ---
 
@@ -253,8 +253,8 @@ in the text is passed to the LLM as a hint.
   - **Drafts run one per job, only for scores at or above the threshold.** Each is an
     80-120 word note, capped at about 10 a day.
   - Total: about 20 requests and roughly 60-100k tokens a day, still small for a free tier.
-- **Profile:** locally, `pypdf` extracts the resume from the path in gitignored
-  `config.local.toml`. Contact lines (phone, email, LinkedIn) are stripped **before** anything
+- **Profile:** locally, `pypdf` extracts the resume from the path in
+  `~/.config/job-agent/config.toml` (outside the repo). Contact lines (phone, email, LinkedIn) are stripped **before** anything
   goes to an LLM. In Actions, that same stripped text lives in the `CANDIDATE_PROFILE` secret.
   A helper script prints it so you can paste it into the secret, and it's never committed.
 - **Privacy note:** Google may use free-tier Gemini inputs to improve its products. So the
@@ -339,9 +339,9 @@ walkthrough that calls `gh secret set` for each secret, so the values never touc
   - Digest formatting and the length cap.
 - No network in tests. LLM, Sheet and Slack are behind small interfaces with fakes.
 - `tests.yml` runs pytest on every push. Locally, one test run at a time.
-- `--dry-run` fetches, filters, dedupes (against `.state/seen.json`) and scores. It prints
+- `--dry-run` fetches, filters, dedupes (against local state) and scores. It prints
   the would-be Sheet rows and the digest, but writes nothing and sends nothing.
-- `--local` is a dry-run that also records rows and seen ids in gitignored `.state/`, so
+- `--local` is a dry-run that also records rows and seen ids in `~/.config/job-agent/state/`, so
   cross-run dedupe can be checked before any Google account exists.
 - `--no-llm` skips scoring, for zero-cost runs. `--limit N` caps how many jobs are sent to
   the LLM.
@@ -380,69 +380,67 @@ untouched.
 
 ---
 
-## 10. How the work is split
 
-### M0 is the step that makes splitting possible
+## 10. Build order and sessions
 
-M0 builds no features. It does three things:
-- **Clears the ground:** a fresh worktree off `main`, with the old modules removed.
-- **Fixes the contracts every later piece plugs into:**
-  - the `Job` model;
-  - a `Source` interface (`fetch() -> list[Job]`);
-  - `LLMClient`, `SheetStore` (`seen_ids()`, `append(rows)`) and `Notifier.send(digest)`;
-  - the config loader and the CLI flags.
-- **Gives each contract a working fake,** so the pipeline runs end to end from day one
-  with no real data (`--dry-run --no-llm` prints "0 sources").
+One build lane, run in order. The work is split into **sessions** so that each one starts
+with a small context. A new session reads this plan and the progress log below, and the
+code itself is the rest of the hand-off.
 
-Once those interfaces exist, each later lane only touches its own module and its own tests.
-That's what lets lanes run in parallel without stepping on each other.
+| Session | Milestones | What the owner does before or during it | Ends when |
+|---|---|---|---|
+| 1 | Plan + M0 | Approve the plan | Contracts, dry-run CLI and tests are committed ✅ |
+| 2 | M1 sources + M2 filters/dedupe | Nothing. Optionally create the Gemini key (step A below) | A dry-run prints real, filtered, deduped jobs from all five sources |
+| 3 | M3 LLM scoring + drafts | **Step A done before starting** | `--dry-run --limit 5` shows real scores, reasons and drafts |
+| 4 | M4 Sheet + M5 Slack | **Steps B and C done before starting** | Rows land in the real Sheet and a digest arrives in Slack |
+| 5 | M6 GitHub Actions + M7 README, publish | Step D during the session, then approve the push and publishing | The daily run works with the Mac off, and the repo is public |
 
-### Lanes
+### Owner steps (each one is done in a browser; values go in `~/.config/job-agent/.env`)
 
-```
-M0 contracts (this session) ─┬─ Lane A  sources (M1)        jobagent/sources/*, tests/test_parsers.py
-                             ├─ Lane B  filters + dedupe (M2) jobagent/filters.py, dedupe.py, their tests
-                             ├─ Lane C  LLM (M3)              jobagent/llm.py, prompts/, tests/test_llm_parse.py
-                             ├─ Lane D  Sheet + Slack (M4-5)  jobagent/sheet.py, digest.py, their tests
-                             └─ Lane You  accounts & keys     Gemini key, GCP service account, Sheet, Slack webhook
-                                         │
-                     integration (this session): wire pipeline → real dry run → M6 Actions → M7 README
-```
+Never paste a key into a chat. Open the file with
+`open -e ~/.config/job-agent/.env`, paste the value after the `=`, and save.
 
-- **You**, starting now, in parallel with everything: create the five secrets in section 6
-  and put them in a local `.env`. That's about 45 minutes of clicking. It's the only thing
-  that can block M3-M6 real runs, so starting early matters most.
-- **Lanes A-D** only need the M0 contracts. Real network and API calls are needed only to
-  *verify* C and D, not to write them.
+- **A. Gemini key, about 5 minutes.**
+  1. Go to aistudio.google.com and sign in.
+  2. Click **Get API key** → **Create API key** and let it create a new project.
+  3. Copy the key into `GEMINI_API_KEY=`.
+  4. Don't add a billing account. Without one, it can't charge.
+- **B. Google Sheet + service account, about 20 minutes.** Session 4 walks through it click
+  by click. Outline:
+  1. console.cloud.google.com → new project `job-agent`.
+  2. Enable the **Google Sheets API**.
+  3. IAM & Admin → Service accounts → Create, then Keys → Add key → JSON. Open the
+     downloaded file in TextEdit, copy everything, and paste it into
+     `GOOGLE_SERVICE_ACCOUNT_JSON=` as one line. Then delete the downloaded file.
+  4. Create a blank Google Sheet named "Job tracker". Share it as Editor with the service
+     account's email (it ends in `iam.gserviceaccount.com`).
+  5. Copy the long id from the Sheet's URL (between `/d/` and `/edit`) into `SHEET_ID=`.
+- **C. Slack webhook, about 10 minutes.**
+  1. Create a free Slack workspace with a `#jobs` channel.
+  2. api.slack.com/apps → Create New App → From scratch.
+  3. Incoming Webhooks → On → Add New Webhook → `#jobs`.
+  4. Copy the URL into `SLACK_WEBHOOK_URL=`.
+  5. Install the Slack phone app and turn on notifications for `#jobs`.
+- **D. GitHub secrets, about 5 minutes, in session 5.** Run one script that copies the
+  values from `~/.config/job-agent/.env` into the repo's Actions secrets with
+  `gh secret set`. The values are never printed.
 
-### Recommended setup: two agents in parallel, not five
+### Rules every session follows
 
-The project is small: about 1,500 lines. Five parallel agents would spend more on merging,
-reviewing and re-explaining than they save. They'd also risk several test runs at once on
-this Mac.
-- **This session:** M0, then Lane A (sources) and Lane C (LLM), then integration, M6 and M7.
-  The five source adapters are independent files, so I fan them out to subagents. They
-  write code only and **don't run tests**. I run the suite once afterwards.
-- **A second session in its own worktree:** Lane B (filters + dedupe), then Lane D
-  (Sheet + Slack). Filters hold the logic that most decides whether the digest is useful.
-  It's pure functions tested against about 40 real location strings from today's feeds,
-  so it's the cleanest piece to hand off.
-- **Test rule for both sessions:** each runs only its own test file
-  (`pytest tests/test_filters.py`), never the whole suite. The full suite runs once, in
-  this session, at merge time. Tests here are pure Python with no network and finish in
-  about a second, so the crash risk is low, but they stay serialized anyway.
-- **Merging:** the second session commits to its own branch. Because the lanes touch
-  disjoint files, merging should be conflict-free. I merge it here only when you say so,
-  then do the integration run.
+- Work on a branch cut from the previous session's branch. Never push without the owner's
+  go-ahead.
+- Run one test command at a time: parallel runs have crashed this Mac.
+- Before finishing, commit, then update the progress log below: what's done, what's next,
+  and any surprises.
 
-### How you stay in the loop
+## 11. Progress log
 
-1. Approve this plan.
-2. I build M0 and show you the contracts (about 150 lines). That's the one review worth
-   doing carefully.
-3. I propose the second session as a card. You start it.
-4. Each milestone ends with a dry-run printout. You glance at it, and I commit.
-5. **Write one source adapter yourself,** e.g. Remotive (about 40 lines), following the
-   pattern of the others. This is a public portfolio piece, and interviewers will ask
-   "walk me through how you built this". Owning one piece end to end, and reviewing the
-   filters, makes that an easy conversation.
+- **Session 1 (2026-11-25): Plan + M0 done.**
+  - Branch `v2`: contracts (`models.py`, `interfaces.py`), pipeline, dry-run/`--local`
+    CLI, local stand-ins and 31 tests.
+  - All local secrets and settings live in `~/.config/job-agent/`, outside the repo.
+    `config.toml` already points at the resume, and `.env` has empty slots for the keys.
+  - `filters.py` and `dedupe.py` are deliberate stubs that keep everything.
+  - Raw feeds saved on 2026-11-25 are in `/tmp/jobsrc/*.out`, useful for test fixtures,
+    but `/tmp` may be cleared, so re-fetch them if they're gone.
+  - **Next: session 2, M1 + M2.**

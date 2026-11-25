@@ -1,9 +1,9 @@
 """Command line entry point: `python -m jobagent <command>`.
 
 Run modes:
-  run --dry-run   fetch, filter, dedupe against .state/seen.json, score; print rows and
+  run --dry-run   fetch, filter, dedupe against the local state, score; print rows and
                   digest; write nothing, send nothing.
-  run --local     like dry-run, but records rows in .state/ so a second run dedupes.
+  run --local     like dry-run, but records rows in ~/.config/job-agent/state/ so a second run dedupes.
   run             production: Google Sheet + Slack (needs secrets; arrives in M4/M5).
 """
 
@@ -123,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="run the pipeline once")
     mode = p_run.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="print rows and digest; write and send nothing")
-    mode.add_argument("--local", action="store_true", help="record rows in .state/ instead of the Sheet")
+    mode.add_argument("--local", action="store_true", help="record rows in local state instead of the Sheet")
     p_run.add_argument("--no-llm", action="store_true", help="skip scoring and drafting (zero LLM cost)")
     p_run.add_argument("--limit", type=int, default=None, metavar="N", help="score at most N jobs this run")
     p_run.add_argument("--sources", default="", metavar="A,B", help="only these sources (comma-separated)")

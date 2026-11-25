@@ -1,4 +1,4 @@
-# Copy to config.local.toml (gitignored). Local-only settings that must never be committed.
+# Copy to ~/.config/job-agent/config.toml (outside the repo). Local-only settings.
 
 # Absolute path to your resume PDF. Contact lines are stripped before any text reaches an LLM.
 resume_path = "/path/to/your/resume.pdf"

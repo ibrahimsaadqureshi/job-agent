@@ -1,6 +1,6 @@
 """Local stand-ins for the Sheet and Slack, used by --dry-run and --local runs.
 
-- LocalTracker keeps seen ids in .state/seen.json and rows in .state/rows.csv,
+- LocalTracker keeps seen ids in ~/.config/job-agent/state/ (seen.json, rows.csv),
   so cross-run dedupe can be exercised before any Google account exists.
 - ConsoleNotifier prints the digest instead of posting it.
 """

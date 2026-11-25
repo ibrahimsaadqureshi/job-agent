@@ -27,8 +27,8 @@ jobagent/
   filters.py      category / location / seniority rules        (M2)
   dedupe.py       in-run duplicate collapsing                    (M2)
   digest.py       pick and render the daily digest
-  local.py        .state/ tracker + console notifier for dry and local runs
-  config.py       env vars + gitignored config.local.toml
+  local.py        local-state tracker + console notifier for dry and local runs
+  config.py       env vars + ~/.config/job-agent/ (secrets and local settings, outside the repo)
   net.py          shared HTTP session (honest User-Agent, timeout, retry)
   cli.py          python -m jobagent run [--dry-run | --local] [--no-llm] [--limit N] [--sources a,b]
   sources/        one module per job board                       (M1)

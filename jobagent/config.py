@@ -1,8 +1,14 @@
 """All configuration in one place.
 
-Secrets come from environment variables only: a local `.env` file (gitignored), or
-GitHub Actions secrets in CI. Local-only, non-secret paths (the resume PDF) come from
-a gitignored `config.local.toml`. Nothing personal lives in the repo.
+Nothing personal lives in the repo. Everything local lives in one folder outside it,
+JOBAGENT_HOME (default ~/.config/job-agent/), so it survives new clones and worktrees:
+
+    ~/.config/job-agent/.env          secrets (same names as .env.example)
+    ~/.config/job-agent/config.toml   local-only settings, e.g. resume_path
+    ~/.config/job-agent/state/        --local / --dry-run run state
+
+In GitHub Actions the same secrets arrive as environment variables. Real environment
+variables always win over the .env file.
 """
 
 from __future__ import annotations
@@ -13,7 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-STATE_DIR = PROJECT_ROOT / ".state"
+USER_DIR = Path(os.environ.get("JOBAGENT_HOME", "~/.config/job-agent")).expanduser()
+STATE_DIR = USER_DIR / "state"
 
 
 @dataclass(frozen=True)
@@ -60,20 +67,20 @@ def load_settings(
     local_config: Path | None = None,
     dotenv: Path | None = None,
 ) -> Settings:
-    """Build Settings from the environment (+ .env) and config.local.toml.
+    """Build Settings from the environment (+ USER_DIR/.env) and USER_DIR/config.toml.
 
     Real environment variables win over .env values, so CI secrets always apply.
     """
     if env is None:
         env = dict(os.environ)
-        dotenv_path = dotenv if dotenv is not None else PROJECT_ROOT / ".env"
+        dotenv_path = dotenv if dotenv is not None else USER_DIR / ".env"
         if dotenv_path.exists():
             from dotenv import dotenv_values
 
             file_values = {k: v for k, v in dotenv_values(dotenv_path).items() if v is not None}
             env = {**file_values, **env}
 
-    local_path = local_config if local_config is not None else PROJECT_ROOT / "config.local.toml"
+    local_path = local_config if local_config is not None else USER_DIR / "config.toml"
     local: dict = {}
     if local_path.exists():
         local = tomllib.loads(local_path.read_text(encoding="utf-8"))

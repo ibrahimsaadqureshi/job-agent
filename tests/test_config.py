@@ -12,7 +12,7 @@ def test_defaults_with_empty_env(tmp_path):
 
 
 def test_env_values_and_local_config(tmp_path):
-    local = tmp_path / "config.local.toml"
+    local = tmp_path / "config.toml"
     local.write_text('resume_path = "/tmp/resume.pdf"\n', encoding="utf-8")
     s = load_settings(
         env={"SHEET_ID": " abc ", "SCORE_THRESHOLD": "80", "LLM_PROVIDER": "Ollama"},
