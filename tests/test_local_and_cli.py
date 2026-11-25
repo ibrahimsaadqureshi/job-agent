@@ -54,3 +54,33 @@ def test_cli_production_mode_explains_what_is_missing(isolated_state, capsys):
 def test_cli_rejects_unknown_source(isolated_state, capsys):
     assert cli.main(["run", "--dry-run", "--no-llm", "--sources", "indeed"]) == 2
     assert "unknown source" in capsys.readouterr().err
+
+
+def test_build_scorer_needs_a_provider():
+    with pytest.raises(cli.SetupError, match="GEMINI_API_KEY"):
+        cli.build_scorer(cli.Settings(), no_llm=False)
+    assert cli.build_scorer(cli.Settings(), no_llm=True) is None
+    scorer = cli.build_scorer(cli.Settings(gemini_api_key="k", github_token="t"), no_llm=False)
+    assert scorer.chain.names == ["gemini", "github"]
+
+
+def test_cli_run_without_profile_fails_before_fetching(isolated_state, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "load_settings", lambda: cli.Settings(gemini_api_key="k"))
+    assert cli.main(["run", "--dry-run"]) == 2
+    assert "CANDIDATE_PROFILE" in capsys.readouterr().err
+
+
+def test_cli_dry_run_prints_scores_reasons_and_drafts(isolated_state, capsys, monkeypatch):
+    from fakes import FakeScorer, FakeSource
+
+    jobs = [make_job(n, title=f"Junior React Developer {n}") for n in range(1, 4)]
+    scorer = FakeScorer({jobs[0].id: 88, jobs[1].id: 40, jobs[2].id: 75})
+    monkeypatch.setattr(cli.source_registry, "get_sources", lambda names=None: [FakeSource("fake", jobs)])
+    monkeypatch.setattr(cli, "build_scorer", lambda settings, no_llm: scorer)
+    monkeypatch.setattr(cli, "load_profile", lambda settings, no_llm: "The candidate\nReact developer")
+    assert cli.main(["run", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert f"reason {jobs[0].id}" in out
+    assert "draft for Junior React Developer 1" in out
+    assert "draft for Junior React Developer 2" not in out  # 40 is under the threshold
+    assert sum(len(b) for b in scorer.scored_batches) == 3  # default limit (100) leaves all 3
