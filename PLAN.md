@@ -569,6 +569,6 @@ Never paste a key into a chat. Open the file with
     - Gemini 503 (overloaded) happened on a confirmed free-tier key. With no GitHub Models token
       locally there was no fallback. In Actions, `GITHUB_TOKEN` gives one, so verify it in session 5.
     - A new Google Sheet has an empty `Sheet1` tab. The code leaves it alone; the owner can delete it.
-    - The Slack delivery check is HTTP 200 from the webhook. The owner confirms how it looks.
+    - The Slack delivery check is HTTP 200 from the webhook. The owner checked `#jobs` and confirmed the digest looks right.
   - **Next: session 5, M6 + M7** (GitHub Actions daily run, Step D secrets script, README,
     publish). Must be cut from this branch.
