@@ -4,7 +4,9 @@ A free daily pipeline that finds remote software jobs open to candidates in Paki
 scores them against my resume with a free LLM, drafts short application notes, logs
 everything to a Google Sheet and sends one digest a day. I review and apply myself.
 
-Status: **draft, waiting for approval.** No code is written until this is approved.
+Status: **built and running** (all milestones done, 2026-11-25). This is the design document
+and build log; the [README](README.md) is the short overview. It was written as a plan before
+any code, so it speaks in the future tense in places.
 
 Decided with you (2026-11-25): digest goes to **Slack**, score threshold **70**, **Senior**
 roles are kept and left to the LLM, and **automation gigs** appear in the digest and the Sheet.
@@ -208,9 +210,9 @@ role is junior and mentored").
   if the text hints at a region lock. (RemoteOK blanks are rare: 1 in 100 today.)
 
 **Seniority:** titles with staff, principal, director, head of, VP or manager are always
-dropped. **Senior** roles are kept and go to the scorer. The scoring prompt states my real
-experience (about 5 months with the full-stack title, 2 years at the company), so a role
-asking for 5+ years scores low on its own merits. Any years-of-experience requirement found
+dropped. **Senior** roles are kept and go to the scorer. The scoring prompt has the model work out the candidate's
+real experience from the profile's dates, so a role asking for 5+ years scores low on its
+own merits. Any years-of-experience requirement found
 in the text is passed to the LLM as a hint.
 
 **Dedupe:**
