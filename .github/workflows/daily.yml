@@ -1,0 +1,70 @@
+# The daily job run: fetch, filter, score, append to the Sheet, send the Slack digest.
+# Logs are public once the repo is public, so the pipeline prints counts only.
+name: Daily run
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC = 08:00 Pakistan time
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "LLM provider to try first (default: gemini)"
+        type: choice
+        options: [default, gemini, github]
+        default: default
+      limit:
+        description: "Score at most this many jobs (blank = the usual 200)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read # check out the code
+  models: read # GitHub Models fallback through GITHUB_TOKEN
+
+concurrency:
+  group: daily-run
+  cancel-in-progress: false # a second run waits instead of overlapping
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      # No resume extra: CI reads the profile from the CANDIDATE_PROFILE secret.
+      - name: Install
+        run: pip install -e '.[sheets]'
+
+      - name: Run the pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          CANDIDATE_PROFILE: ${{ secrets.CANDIDATE_PROFILE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROVIDER_INPUT: ${{ inputs.provider }}
+          LIMIT_INPUT: ${{ inputs.limit }}
+        run: |
+          if [ -n "$PROVIDER_INPUT" ] && [ "$PROVIDER_INPUT" != "default" ]; then
+            export LLM_PROVIDER="$PROVIDER_INPUT"
+          fi
+          args=(run)
+          if [ -n "$LIMIT_INPUT" ]; then
+            if ! [[ "$LIMIT_INPUT" =~ ^[0-9]+$ ]]; then
+              echo "error: limit must be a whole number" >&2
+              exit 2
+            fi
+            args+=(--limit "$LIMIT_INPUT")
+          fi
+          python -m jobagent "${args[@]}"
