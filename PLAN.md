@@ -392,7 +392,7 @@ code itself is the rest of the hand-off.
 | 1 | Plan + M0 | Approve the plan | Contracts, dry-run CLI and tests are committed ✅ |
 | 2 | M1 sources + M2 filters/dedupe | Nothing. Optionally create the Gemini key (step A below) | A dry-run prints real, filtered, deduped jobs from all five sources ✅ |
 | 3 | M3 LLM scoring + drafts | **Step A done before starting** | `--dry-run --limit 5` shows real scores, reasons and drafts |
-| 4 | M4 Sheet + M5 Slack | **Steps B and C done before starting** | Rows land in the real Sheet and a digest arrives in Slack |
+| 4 | M4 Sheet + M5 Slack | **Steps B and C done before starting** | Rows land in the real Sheet and a digest arrives in Slack ✅ |
 | 5 | M6 GitHub Actions + M7 README, publish | Step D during the session, then approve the push and publishing | The daily run works with the Mac off, and the repo is public |
 
 ### Owner steps (each one is done in a browser; values go in `~/.config/job-agent/.env`)
@@ -525,3 +525,50 @@ Never paste a key into a chat. Open the file with
     github_models, ollama).
   - **Next: session 4, M4 + M5.** Needs owner Steps B and C first, and must be cut from this
     branch.
+- **Session 4 (2026-11-25): M4 Sheet tracker + M5 Slack digest done.**
+  - Branch `claude/v2-session4-e7199c` (cut from `claude/v2-session3-b32d99` at `d9485c4`). 340 tests pass.
+  - **Sheet** (`sheet.py`): auth from the JSON string (`Credentials.from_service_account_info`).
+    One `Jobs` tab, created as the first tab if missing; the header is written when the tab is
+    empty, and a header that doesn't match `SHEET_COLUMNS` stops the run before anything is written
+    (extra owner columns to the right are allowed). `seen_ids` reads only the `id` column. `append`
+    is one `append_rows` call with `value_input_option="RAW"` (a title starting with `=` stays text)
+    and never edits existing rows. `python -m jobagent setup-sheet` freezes and bolds the header,
+    sets widths, wraps `reason`/`draft note`, hides `id`, adds score colours (70+ green, 50-69
+    yellow), a strict `status` dropdown (new, applied, skipped, interviewing, rejected, offer) and
+    a filter row. It's idempotent: re-running replaces only its own score rules.
+  - **Slack** (`slack.py`): Block Kit header with date and count, a stats line, one section per
+    category, each job as linked title, company, score, salary, reason and "via <label>", then a
+    footer with the Sheet link and any failed sources. Plain-text fallback is the escaped
+    `render_text`. Empty days send "Nothing new at 70+ today (counts)". Job text is escaped
+    (`& < >`, `|` in link text), non-http links are dropped, fields are cut to fit, blocks capped at 50.
+    The webhook uses a plain `requests.Session` with no retry adapter, because urllib3's retry
+    warnings print the URL path (the secret); network errors are re-raised without the URL.
+  - **Production wiring** (`cli.py`): plain `run` checks `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`
+    and `SLACK_WEBHOOK_URL` up front and names any that are missing. Setup errors after the notifier
+    exists, and any crash during the run, post `send_failure(<exception type>)` and exit non-zero
+    (2 for setup, 1 for a crash). Production prints counts only. urllib3/google/gspread loggers are
+    pinned to WARNING.
+  - **`MAX_SCORED_PER_RUN` raised from 100 to 200.** The owner confirmed the free-tier limits for
+    gemini-3.1-flash-lite in AI Studio: 15 RPM, 250K TPM, 500 RPD. A 200-job run is about 20 scoring
+    calls plus up to 12 drafts (~32 requests, ~5K tokens each), and pacing stays at 6 s per call
+    (10 a minute, under 15). The ~350-job backlog clears in about 2 days.
+  - **Real runs, 2026-11-25:**
+    - `setup-sheet` twice: still exactly 2 score rules, frozen header, filter on, header correct.
+    - `run --limit 20`: fetched 1,125, kept 369, 354 new, 20 scored, 3 drafted (75, 75, 80),
+      **20 rows written**, all aligned, drafts exactly on the 70+ rows. Slack accepted the digest
+      (11 blocks, HTTP 200).
+    - Second `run --limit 20`: **20 already seen, 0 duplicate rows**. Gemini returned 503 on the
+      second batch (retried once, then gave up), so 10 were scored, 1 drafted, **10 rows written**
+      (30 in total). The 10 unscored jobs weren't tracked, so they're retried next run. Digest sent
+      (7 blocks).
+    - Controlled failure (pipeline patched to raise `ControlledTestFailure`): the real top-level
+      handler posted the notice, which names only the type, and exited 1.
+    - Repo and this session's history scanned for the Sheet id, webhook, Gemini key and
+      service-account email/key id: none found.
+  - **Surprises:**
+    - Gemini 503 (overloaded) happened on a confirmed free-tier key. With no GitHub Models token
+      locally there was no fallback. In Actions, `GITHUB_TOKEN` gives one, so verify it in session 5.
+    - A new Google Sheet has an empty `Sheet1` tab. The code leaves it alone; the owner can delete it.
+    - The Slack delivery check is HTTP 200 from the webhook. The owner confirms how it looks.
+  - **Next: session 5, M6 + M7** (GitHub Actions daily run, Step D secrets script, README,
+    publish). Must be cut from this branch.
