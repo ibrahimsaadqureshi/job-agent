@@ -3,14 +3,20 @@
 Order matters: in-run dedupe keeps the first source that lists a job, so put the
 source with the richest structured data first.
 
-Lane A (M1) adds: himalayas, wwr, remoteok, remotive, hn.
+Each source module also exposes a pure `parse(payload) -> list[Job]`, so parsers
+are tested against saved fixtures with no network.
 """
 
 from __future__ import annotations
 
 from jobagent.interfaces import Source
+from jobagent.sources.himalayas import HimalayasSource
+from jobagent.sources.hn import HnSource
+from jobagent.sources.remoteok import RemoteOkSource
+from jobagent.sources.remotive import RemotiveSource
+from jobagent.sources.wwr import WwrSource
 
-ALL_SOURCES: list[Source] = []
+ALL_SOURCES: list[Source] = [HimalayasSource(), WwrSource(), RemoteOkSource(), RemotiveSource(), HnSource()]
 
 
 def get_sources(names: list[str] | None = None) -> list[Source]:
