@@ -1,8 +1,9 @@
 """LLM providers and the fallback chain.
 
-Chain order: the configured provider (LLM_PROVIDER), then the other hosted one that has
-credentials (Gemini <-> GitHub Models), then nothing: jobs nobody could score stay
-unscored and are retried on the next run.
+Chain order: the configured provider (LLM_PROVIDER); right after the main Gemini model,
+a second Gemini model (GEMINI_BACKUP_MODEL, with its own free-tier quota) for when the
+first is overloaded; then the other hosted provider with credentials (GitHub Models);
+then nothing: jobs nobody could score stay unscored and are retried on the next run.
 """
 
 from __future__ import annotations
@@ -91,7 +92,17 @@ def build_providers(settings: Settings, session: requests.Session) -> list[Provi
         return None
 
     order = [configured] + [n for n in ("gemini", "github") if n != configured]
-    providers = [p for p in (make(n) for n in order) if p is not None]
+    providers: list[Provider] = []
+    for name in order:
+        provider = make(name)
+        if provider is None:
+            continue
+        providers.append(provider)
+        backup = settings.gemini_backup_model
+        if name == "gemini" and backup and backup != settings.gemini_model:
+            providers.append(
+                GeminiProvider(settings.gemini_api_key, backup, session, name="gemini-backup")
+            )
     if providers and providers[0].name != configured:
         log.warning("LLM_PROVIDER=%s has no credentials; using %s", configured, providers[0].name)
     return providers

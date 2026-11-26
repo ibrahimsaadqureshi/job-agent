@@ -39,6 +39,9 @@ class Settings:
     # Behaviour
     llm_provider: str = "gemini"  # gemini | github | ollama
     gemini_model: str = "gemini-3.1-flash-lite"  # cheapest current Flash-class model (2026-11-25)
+    # Second free model with its own quota, used when the main one is overloaded (503) or
+    # out of quota. "" disables it. Confirmed on the owner's key 2026-11-26: 15 RPM, 250K TPM.
+    gemini_backup_model: str = "gemini-3.5-flash-lite"
     github_model: str = "openai/gpt-4.1-mini"
     ollama_model: str = "qwen2.5:7b"
     ollama_url: str = "http://127.0.0.1:11434"
@@ -56,6 +59,14 @@ class Settings:
     def missing(self, *names: str) -> list[str]:
         """Names of the given settings that are empty, e.g. missing("sheet_id")."""
         return [n for n in names if not getattr(self, n)]
+
+
+def _backup_model(raw: str) -> str:
+    """GEMINI_BACKUP_MODEL: blank = the default backup; "none"/"off"/"false" = no backup."""
+    value = raw.strip()
+    if value.lower() in ("none", "off", "false", "0"):
+        return ""
+    return value or Settings.gemini_backup_model
 
 
 def _int(env: dict[str, str], key: str, default: int) -> int:
@@ -101,6 +112,7 @@ def load_settings(
         resume_path=str(local.get("resume_path", "")).strip(),
         llm_provider=env.get("LLM_PROVIDER", "gemini").strip().lower() or "gemini",
         gemini_model=env.get("GEMINI_MODEL", "").strip() or Settings.gemini_model,
+        gemini_backup_model=_backup_model(env.get("GEMINI_BACKUP_MODEL", "")),
         github_model=env.get("GITHUB_MODELS_MODEL", "").strip() or Settings.github_model,
         ollama_model=env.get("OLLAMA_MODEL", "").strip() or Settings.ollama_model,
         ollama_url=env.get("OLLAMA_URL", "").strip() or Settings.ollama_url,

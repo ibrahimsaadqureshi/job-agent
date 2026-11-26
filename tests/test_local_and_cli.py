@@ -156,7 +156,7 @@ def test_build_scorer_needs_a_provider():
         cli.build_scorer(cli.Settings(), no_llm=False)
     assert cli.build_scorer(cli.Settings(), no_llm=True) is None
     scorer = cli.build_scorer(cli.Settings(gemini_api_key="k", github_token="t"), no_llm=False)
-    assert scorer.chain.names == ["gemini", "github"]
+    assert scorer.chain.names == ["gemini", "gemini-backup", "github"]
 
 
 def test_cli_run_without_profile_fails_before_fetching(isolated_state, capsys, monkeypatch):

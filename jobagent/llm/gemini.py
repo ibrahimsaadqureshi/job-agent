@@ -36,7 +36,8 @@ def to_gemini_schema(schema: dict) -> dict:
 
 
 class GeminiProvider:
-    name = "gemini"
+    """One Gemini model. Free-tier quotas are per model, so a second instance with another
+    model (name "gemini-backup") works as a fallback when the first is overloaded."""
 
     def __init__(
         self,
@@ -44,11 +45,13 @@ class GeminiProvider:
         model: str,
         session: requests.Session,
         *,
+        name: str = "gemini",
         pacer: Pacer | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ):
         if not api_key:
             raise ValueError("GEMINI_API_KEY is empty")
+        self.name = name
         self._api_key = api_key
         self.model = model
         self.session = session
@@ -56,7 +59,7 @@ class GeminiProvider:
         self.sleep = sleep
 
     def __repr__(self) -> str:  # never show the key
-        return f"GeminiProvider(model={self.model!r})"
+        return f"GeminiProvider(name={self.name!r}, model={self.model!r})"
 
     def _thinking(self) -> dict:
         # Keep thinking to a minimum: it costs output tokens and these tasks are simple.

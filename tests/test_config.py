@@ -38,3 +38,18 @@ def test_real_env_wins_over_dotenv(tmp_path, monkeypatch):
     s = load_settings(dotenv=dotenv, local_config=tmp_path / "x.toml")
     assert s.sheet_id == "from-env"
     assert s.slack_webhook_url == "hook-from-file"
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("", "gemini-3.5-flash-lite"),  # blank: the default backup
+        ("gemini-x-lite", "gemini-x-lite"),
+        ("none", ""),
+        ("OFF", ""),
+        ("false", ""),
+    ],
+)
+def test_gemini_backup_model_setting(tmp_path, raw, expected):
+    s = load_settings(env={"GEMINI_BACKUP_MODEL": raw}, local_config=tmp_path / "x.toml")
+    assert s.gemini_backup_model == expected

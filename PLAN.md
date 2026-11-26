@@ -652,3 +652,15 @@ Never paste a key into a chat. Open the file with
     - A `check` job (`actions: read`) skips a scheduled run when a run already succeeded that
       UTC day, so there's still one digest a day. Manual runs always go ahead.
   - That day's digest was sent by a manual run.
+- **2026-11-26: backup Gemini model added.**
+  - Gemini 3.1 Flash Lite returned 503 (overloaded) on 2 of the day's batches, and with GitHub
+    Models retired there was no fallback.
+  - The chain now puts a second free model right after the main one: `gemini-3.5-flash-lite`
+    (`GEMINI_BACKUP_MODEL`; `none` turns it off). It has its own per-model quota: 15 RPM and
+    250K TPM, confirmed in AI Studio.
+  - It runs as a separate provider named `gemini-backup`, so a 429 disables only that model.
+    A 503 doesn't disable anything: the main model is tried again on the next batch.
+  - Live check: in a dry-run of 10 real jobs, the backup model scored all 10 sensibly and
+    drafted one note. The note cited only resume facts; one mild stretch was "ship in
+    TypeScript and Python".
+  - 347 tests pass.

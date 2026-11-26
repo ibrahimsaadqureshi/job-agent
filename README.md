@@ -92,11 +92,13 @@ a table of real-world cases in the tests.
 - **Model:** Google `gemini-3.1-flash-lite` on the free tier (15 requests/minute, 500/day).
   The client paces itself at one call every 6 seconds, retries a 429/5xx once, and stops
   using a provider for the rest of the run once its quota is gone.
-- **When the LLM fails:** jobs it couldn't score aren't written to the Sheet, so the next
-  run retries them. Nothing is lost, only delayed a day. The code has a provider chain (it
-  tries the next configured provider before giving up) with **GitHub Models** and a local
-  **Ollama** as alternatives, but GitHub retired its free Models service in 2026, so in
-  Actions the chain is Gemini alone (see Limits).
+- **When the LLM fails:** free-tier quotas are per model, so the chain falls back to a second
+  free model, `gemini-3.5-flash-lite` (`GEMINI_BACKUP_MODEL`), when the main one is
+  overloaded (503) or out of quota. A 503 is treated as temporary: the next batch tries the
+  main model again. Jobs neither model could score aren't written to the Sheet, so the next
+  run retries them: nothing is lost, only delayed a day. The chain also supports **GitHub
+  Models** and a local **Ollama**, but GitHub retired its free Models service in 2026, so
+  Actions uses the two Gemini models.
 - **Scoring:** 10 jobs per request, each trimmed to about 1,000 characters. The rubric asks
   three questions: can they get hired (level and years vs. real experience, region), can
   they ramp up fast (how close the stack is, mentoring), and will they grow. Hard caps are
@@ -241,11 +243,10 @@ tests/            pytest suites, fixtures and fakes
 ## Limits and next steps
 
 - Free tiers set the pace: about 200 jobs scored a day, so the first backlog takes two days.
-- Gemini occasionally returns 503 or times out under load. Those jobs wait for the next run.
-  A second free provider in Actions would close that gap: GitHub Models was the plan, but it
-  was retired before this went live (verified from Actions: its endpoint now answers every
-  request with a plain `OK`). The best candidate is a second Gemini model as a fallback,
-  since free-tier quotas are per model.
+- Gemini occasionally returns 503 under load. The backup Gemini model covers most of that;
+  if both are down, those jobs wait for the next run. Both models are Google's, so a wider
+  outage hits both. A non-Google free fallback would be the next step (GitHub Models was
+  the plan, but it was retired before this went live).
 - Sources considered and deferred: **Wellfound**, **YC Work at a Startup** and **Arc.dev**
   have no public API and restrict automated access, so they're out. Candidates with
   legitimate public APIs for later: **Jobicy** (has geo filters) and Greenhouse, Lever and

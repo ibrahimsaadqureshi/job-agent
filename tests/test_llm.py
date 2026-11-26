@@ -214,12 +214,40 @@ def names(settings):
 
 
 def test_chain_order_from_settings():
-    assert names(Settings(gemini_api_key="k", github_token="t")) == ["gemini", "github"]
-    assert names(Settings(gemini_api_key="k", github_token="t", llm_provider="github")) == ["github", "gemini"]
-    assert names(Settings(gemini_api_key="k", llm_provider="ollama")) == ["ollama", "gemini"]
-    assert names(Settings(gemini_api_key="k")) == ["gemini"]
+    assert names(Settings(gemini_api_key="k", github_token="t")) == ["gemini", "gemini-backup", "github"]
+    assert names(Settings(gemini_api_key="k", github_token="t", llm_provider="github")) == [
+        "github",
+        "gemini",
+        "gemini-backup",
+    ]
+    assert names(Settings(gemini_api_key="k", llm_provider="ollama")) == ["ollama", "gemini", "gemini-backup"]
+    assert names(Settings(gemini_api_key="k")) == ["gemini", "gemini-backup"]
     assert names(Settings(github_token="t")) == ["github"]  # no Gemini key: GitHub alone
     assert names(Settings()) == []
+
+
+def test_backup_gemini_uses_its_own_model_and_can_be_turned_off():
+    providers = build_providers(Settings(gemini_api_key="k"), FakeSession())
+    assert [p.model for p in providers] == ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]
+    assert names(Settings(gemini_api_key="k", gemini_backup_model="")) == ["gemini"]
+    # A backup that is the same model as the main one would share its quota: skipped.
+    same = Settings(gemini_api_key="k", gemini_model="m", gemini_backup_model="m")
+    assert names(same) == ["gemini"]
+
+
+def test_overloaded_main_model_falls_back_to_the_backup_model():
+    # Main model: 503, then 503 again on its one retry. Backup model: answers.
+    session = FakeSession(FakeResponse(503), FakeResponse(503), gemini_ok("from backup"))
+    main = GeminiProvider(KEY, "main-model", session, pacer=no_pace(), sleep=lambda s: None)
+    backup = GeminiProvider(KEY, "backup-model", session, name="gemini-backup", pacer=no_pace(), sleep=lambda s: None)
+    chain = ProviderChain([main, backup])
+    assert run_text(chain) == "from backup"
+    assert [c["url"].rsplit("/", 1)[-1] for c in session.calls] == [
+        "main-model:generateContent",
+        "main-model:generateContent",
+        "backup-model:generateContent",
+    ]
+    assert chain.disabled == set()  # a 503 is temporary: the main model is tried again next batch
 
 
 def test_unknown_provider_is_a_clear_error():
