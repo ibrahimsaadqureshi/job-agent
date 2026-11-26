@@ -86,7 +86,7 @@ Two gotchas to design around:
 ### Flow
 
 ```
-GitHub Actions cron (daily 03:00 UTC = 08:00 PKT)  +  manual "Run workflow" button
+GitHub Actions cron (02:17 UTC = 07:17 PKT, backup 04:47 UTC)  +  manual "Run workflow" button
         │
         ▼
  fetch ── RemoteOK, Remotive, We Work Remotely, Himalayas, HN Who is hiring
@@ -642,3 +642,13 @@ Never paste a key into a chat. Open the file with
     - Optional: delete the empty `Sheet1` tab in the Sheet.
   - **Next (ideas, not scheduled):** a second free Gemini model as the CI fallback (free-tier
     quotas are per model); the Jobicy source; reply tracking.
+- **2026-11-26: the first scheduled run never fired.**
+  - The workflow was active and the cron was valid, but GitHub started no run at 03:00 UTC.
+    GitHub's docs warn that scheduled runs can be delayed or dropped under load, and that the
+    top of the hour is the busiest time.
+  - Fix:
+    - The cron moved off the hour, to `17 2 * * *` (07:17 PKT).
+    - A backup slot was added at `47 4 * * *` (09:47 PKT).
+    - A `check` job (`actions: read`) skips a scheduled run when a run already succeeded that
+      UTC day, so there's still one digest a day. Manual runs always go ahead.
+  - That day's digest was sent by a manual run.

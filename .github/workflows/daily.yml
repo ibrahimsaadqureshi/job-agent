@@ -3,8 +3,13 @@
 name: Daily run
 
 on:
+  # GitHub may delay or drop scheduled runs when Actions is busy, and the top of the hour is
+  # the busiest time, so both slots sit off the hour. The second slot is a backup: the
+  # `check` job below skips it when a run already succeeded today (UTC), so there's still
+  # one digest a day.
   schedule:
-    - cron: "0 3 * * *" # 03:00 UTC = 08:00 Pakistan time
+    - cron: "17 2 * * *" # 02:17 UTC = 07:17 Pakistan time
+    - cron: "47 4 * * *" # 04:47 UTC = 09:47 Pakistan time (backup)
   workflow_dispatch:
     inputs:
       limit:
@@ -24,7 +29,38 @@ concurrency:
   cancel-in-progress: false # a second run waits instead of overlapping
 
 jobs:
+  # Scheduled runs only: skip if a run of this workflow already succeeded today (UTC).
+  # Manual runs always go ahead.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      go: ${{ steps.decide.outputs.go }}
+    steps:
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          today=$(date -u +%Y-%m-%d)
+          done_today=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow daily.yml \
+            --status success --created ">=$today" --json databaseId --jq 'length')
+          if [ "$done_today" -gt 0 ]; then
+            echo "A run already succeeded today; skipping this slot."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
   run:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

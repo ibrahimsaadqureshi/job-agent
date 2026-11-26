@@ -8,7 +8,7 @@ them against a resume with a free LLM, drafts short application notes, tracks ev
 a Google Sheet and sends one Slack digest every morning. A human reads every job and applies
 by hand. There is no auto-apply.
 
-It runs on GitHub Actions at 08:00 Pakistan time, needs no server, and costs nothing: every
+It runs on GitHub Actions every morning (07:17 Pakistan time, with a 09:47 backup), needs no server, and costs nothing: every
 service it uses is on a free tier with no billing attached.
 
 ![A sample daily digest in Slack](docs/digest.png)
@@ -26,7 +26,7 @@ pipeline does the sorting so the human time goes into applying.
 
 ```mermaid
 flowchart TD
-    cron["GitHub Actions<br/>daily cron 03:00 UTC + manual button"] --> fetch
+    cron["GitHub Actions<br/>daily cron 02:17 UTC, 04:47 UTC backup + manual button"] --> fetch
     subgraph fetch["Fetch (5 public feeds)"]
         himalayas[Himalayas API]
         wwr[We Work Remotely RSS]
@@ -193,8 +193,11 @@ Tuning lives in environment variables: `SCORE_THRESHOLD` (default 70), `DIGEST_M
 
 ## GitHub Actions
 
-- **[`daily.yml`](.github/workflows/daily.yml):** cron `0 3 * * *` plus a manual **Run
-  workflow** button with an optional `--limit`. A concurrency group stops two runs overlapping; 30-minute timeout.
+- **[`daily.yml`](.github/workflows/daily.yml):** two crons, `17 2 * * *` and a backup at
+  `47 4 * * *`. Both sit off the hour because GitHub can drop scheduled runs at busy times
+  (the first one at `0 3` was dropped). A small `check` job skips the backup when a run
+  already succeeded that day, so there's one digest a day. Plus a manual **Run workflow**
+  button with an optional `--limit`. A concurrency group stops two runs overlapping; 30-minute timeout.
 - **[`keepalive.yml`](.github/workflows/keepalive.yml):** GitHub disables scheduled
   workflows in public repos after 60 days without activity. Twice a month this re-enables
   both scheduled workflows through the REST API, which resets that counter, with no dummy
